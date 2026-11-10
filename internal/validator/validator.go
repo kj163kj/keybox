@@ -158,8 +158,27 @@ func (v *Validator) Validate(ctx context.Context, raw []byte) (domain.Report, er
 		for _, c := range key.certs[1 : len(key.certs)-1] {
 			intermediates.AddCert(c)
 		}
+		// Check structural constraints independently of the injected current time.
+		// Otherwise a not-yet-valid path could later become "valid" without ever
+		// having had its path-length constraints verified.
+		start, end := key.certs[0].NotBefore, key.certs[0].NotAfter
+		for _, c := range key.certs {
+			if c.NotBefore.After(start) {
+				start = c.NotBefore
+			}
+			if c.NotAfter.Before(end) {
+				end = c.NotAfter
+			}
+		}
+		verifyTime := report.ValidatedAt
+		if verifyTime.Before(start) {
+			verifyTime = start
+		}
+		if verifyTime.After(end) {
+			verifyTime = end
+		}
 		paths, verifyErr := key.certs[0].Verify(x509.VerifyOptions{
-			Roots: pool, Intermediates: intermediates, CurrentTime: report.ValidatedAt,
+			Roots: pool, Intermediates: intermediates, CurrentTime: verifyTime,
 			KeyUsages: []x509.ExtKeyUsage{x509.ExtKeyUsageAny},
 		})
 		exact := false
@@ -173,11 +192,7 @@ func (v *Validator) Validate(ctx context.Context, raw []byte) (domain.Report, er
 			}
 			exact = exact || same
 		}
-		allTimeValid := true
-		for _, c := range chain.Certificates {
-			allTimeValid = allTimeValid && c.TimeValid
-		}
-		if allTimeValid && (verifyErr != nil || !exact) {
+		if !start.After(end) && (verifyErr != nil || !exact) {
 			chainStates = append(chainStates, domain.ChainInvalid)
 			report.Errors = append(report.Errors, domain.Problem{Code: "PATH_CONSTRAINTS_INVALID", Chain: i + 1})
 			for j := range chain.Certificates {

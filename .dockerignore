@@ -1,0 +1,9 @@
+.git
+.tools
+.local
+.env
+.env.*
+!.env.example
+bin
+coverage.out
+*.key

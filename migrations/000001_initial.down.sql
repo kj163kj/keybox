@@ -1,0 +1,15 @@
+DROP TABLE concurrency_slots;
+DROP TABLE rate_buckets;
+DROP TABLE trusted_roots;
+DROP TABLE crl_cache;
+DROP TABLE settings;
+DROP TABLE download_logs;
+DROP TABLE audit_logs;
+DROP TABLE admin_sessions;
+DROP TABLE admins;
+DROP TABLE validation_runs;
+DROP TABLE certificates;
+DROP TABLE keybox_key_fingerprints;
+DROP TABLE keybox_chains;
+DROP TABLE keybox_blobs;
+DROP TABLE keyboxes;

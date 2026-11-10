@@ -1,0 +1,41 @@
+services:
+  db:
+    image: mysql:8.0.44
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?set a strong root password}
+      MYSQL_DATABASE: keybox
+      MYSQL_USER: keybox_migrator
+      MYSQL_PASSWORD: ${MYSQL_MIGRATOR_PASSWORD:?set a strong migration password}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "--silent"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    restart: unless-stopped
+  migrate:
+    build: .
+    command: ["migrate-up"]
+    environment:
+      KEYBOX_DB_DSN: ${KEYBOX_MIGRATION_DSN:?set migration DSN}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+  api:
+    build: .
+    env_file: .env
+    ports:
+      - "127.0.0.1:8080:8080"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    tmpfs: ["/tmp:size=4m,noexec,nosuid,nodev"]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+    stop_grace_period: 20s
+volumes:
+  mysql_data:
