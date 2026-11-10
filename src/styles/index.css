@@ -1,0 +1,134 @@
+@import "tailwindcss";
+
+:root {
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+html {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+  overscroll-behavior: none;
+  font-family:
+    "Inter",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    "PingFang SC",
+    "Hiragino Sans GB",
+    "Microsoft YaHei",
+    sans-serif;
+}
+
+body {
+  overscroll-behavior: none;
+  background-color: #f8fafc;
+  color: #0f172a;
+  min-height: 100dvh;
+}
+
+@media (pointer: coarse) {
+  input,
+  textarea,
+  select {
+    font-size: 16px;
+  }
+}
+
+button,
+a,
+[role="button"],
+.tappable {
+  touch-action: manipulation;
+}
+
+button,
+[role="button"],
+.control-chip {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.btn-interactive {
+  transition:
+    transform 140ms var(--ease-out),
+    background-color 140ms ease,
+    border-color 140ms ease,
+    color 140ms ease,
+    opacity 140ms ease,
+    box-shadow 140ms ease;
+}
+
+.btn-interactive:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .hover-card-lift {
+    transition:
+      transform 180ms var(--ease-out),
+      border-color 180ms ease,
+      box-shadow 180ms ease;
+  }
+  .hover-card-lift:hover {
+    transform: translateY(-1px);
+  }
+}
+
+.modal-backdrop-enter {
+  opacity: 1;
+  transition: opacity 180ms var(--ease-out);
+  @starting-style {
+    opacity: 0;
+  }
+}
+
+.modal-panel-enter {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+  transform-origin: center;
+  transition:
+    transform 200ms var(--ease-out),
+    opacity 200ms var(--ease-out);
+  @starting-style {
+    opacity: 0;
+    transform: scale(0.95) translateY(4px);
+  }
+}
+
+.popover-origin-enter {
+  transform-origin: var(--transform-origin, top right);
+  transition:
+    transform 160ms var(--ease-out),
+    opacity 160ms var(--ease-out);
+}
+
+.scroll-contain {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.safe-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+.safe-bottom {
+  padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn-interactive,
+  .hover-card-lift,
+  .modal-backdrop-enter,
+  .modal-panel-enter,
+  .popover-origin-enter {
+    transition:
+      opacity 200ms ease,
+      background-color 200ms ease,
+      border-color 200ms ease !important;
+    transform: none !important;
+    animation: none !important;
+  }
+}
