@@ -1,4 +1,3 @@
-import React from 'react';
 import { AlertTriangle, ShieldAlert, X } from 'lucide-react';
 
 export interface RiskConfirmModalProps {

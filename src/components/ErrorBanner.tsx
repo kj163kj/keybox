@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { AlertOctagon, Clock, Copy, Check, RefreshCw } from 'lucide-react';
 import { ERROR_CODE_META } from '../api/contract';
 import { isApiClientError } from '../api/errors';
