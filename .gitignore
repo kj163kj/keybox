@@ -11,3 +11,5 @@ coverage.out
 *.key
 *.p12
 *.pfx
+node_modules/
+dist/
