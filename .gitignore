@@ -1,0 +1,13 @@
+.env
+.env.*
+!.env.example
+.tools/
+.local/
+bin/
+coverage.out
+*.test
+*.exe
+*.log
+*.key
+*.p12
+*.pfx
