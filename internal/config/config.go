@@ -78,7 +78,7 @@ func Load() (Config, error) {
 			continue
 		}
 		u, err := url.Parse(origin)
-		if err != nil || u.Scheme != "https" || u.Host == "" || u.Path != "" || u.RawQuery != "" || u.Fragment != "" || u.User != nil {
+		if err != nil || u.Scheme != "https" || u.Host == "" || strings.Contains(u.Host, "*") || u.Path != "" || u.RawQuery != "" || u.Fragment != "" || u.User != nil {
 			return c, errors.New("allowed origins must be exact HTTPS origins without paths")
 		}
 		c.HTTP.Origins = append(c.HTTP.Origins, origin)

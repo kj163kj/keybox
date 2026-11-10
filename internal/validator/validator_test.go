@@ -3,7 +3,10 @@ package validator
 import (
 	"context"
 	"crypto/x509"
+	"encoding/asn1"
 	"encoding/json"
+	"encoding/pem"
+	"math/big"
 	"strings"
 	"testing"
 	"time"
@@ -96,9 +99,69 @@ func TestSignatureTampering(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	keys[0].certs[0].Signature[0] ^= 1
-	if keys[0].certs[0].CheckSignatureFrom(f.Root) == nil {
-		t.Fatal("tampered signature accepted")
+	original := keys[0].certs[0].Raw
+	tampered := append([]byte(nil), original...)
+	tampered[len(tampered)-1] ^= 1
+	raw := []byte(strings.Replace(string(f.XML),
+		string(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: original})),
+		string(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: tampered})), 1))
+	v := Validator{Now: func() time.Time { return f.Now }, Roots: rootsStub{[]*x509.Certificate{f.Root}}, CRL: crlStub{true, map[string]string{}}}
+	report, err := v.Validate(context.Background(), raw)
+	if err != nil || report.OverallStatus != domain.ChainInvalid {
+		t.Fatalf("tampered chain: %s %v", report.OverallStatus, err)
+	}
+}
+
+func TestInclusiveValidityBoundaries(t *testing.T) {
+	f := testutil.Make(t, false, false, false)
+	now := f.Now.Add(24 * time.Hour)
+	v := Validator{Now: func() time.Time { return now }, Roots: rootsStub{[]*x509.Certificate{f.Root}}, CRL: crlStub{true, map[string]string{}}}
+	report, err := v.Validate(context.Background(), f.XML)
+	if err != nil || report.OverallStatus != domain.Valid {
+		t.Fatal("notAfter boundary must be inclusive")
+	}
+	now = now.Add(time.Nanosecond)
+	report, err = v.Validate(context.Background(), f.XML)
+	if err != nil || report.OverallStatus != domain.Expired {
+		t.Fatal("expiry boundary not enforced")
+	}
+}
+
+func TestBOMAndBoundedPrivateDER(t *testing.T) {
+	f := testutil.Make(t, false, false, false)
+	withBOM := append([]byte{0xef, 0xbb, 0xbf}, f.XML...)
+	v := Validator{Now: func() time.Time { return f.Now }, Roots: rootsStub{[]*x509.Certificate{f.Root}}, CRL: crlStub{true, map[string]string{}}}
+	report, err := v.Validate(context.Background(), withBOM)
+	if err != nil || report.OverallStatus != domain.Valid || report.FileSHA256 != Fingerprint(withBOM) {
+		t.Fatal("BOM normalization changed input identity or validity")
+	}
+	key := struct {
+		Version               int
+		N                     *big.Int
+		E                     int
+		D, P, Q, Dp, Dq, Qinv *big.Int
+	}{
+		N: new(big.Int).Lsh(big.NewInt(1), 8192), E: 65537, D: big.NewInt(1), P: big.NewInt(1), Q: big.NewInt(1),
+		Dp: big.NewInt(1), Dq: big.NewInt(1), Qinv: big.NewInt(1),
+	}
+	der, err := asn1.Marshal(key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := parsePrivate(pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: der})); err == nil {
+		t.Fatal("oversized RSA integers accepted")
+	}
+	keys, err := parse(context.Background(), f.XML)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pk, err := x509.MarshalPKCS8PrivateKey(keys[0].private)
+	if err != nil {
+		t.Fatal(err)
+	}
+	p := pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: pk})
+	if _, err := parsePrivate(append([]byte("ignored-prefix\n"), p...)); err == nil {
+		t.Fatal("unvalidated PEM prefix accepted")
 	}
 }
 

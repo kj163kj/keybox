@@ -88,7 +88,7 @@ func (s *Server) validationSlot(w http.ResponseWriter, r *http.Request) (func(),
 	release, err := s.Store.Acquire(r.Context())
 	if errors.Is(err, store.ErrRateLimited) {
 		w.Header().Set("Retry-After", "5")
-		s.write(w, r, 429, 42902, "validation capacity exhausted", nil)
+		s.write(w, r, 429, 42902, "operation capacity exhausted", nil)
 		return nil, false
 	}
 	if err != nil {

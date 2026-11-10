@@ -140,6 +140,16 @@ func (r *Roots) Apply(ctx context.Context, bundle []byte, approvedSHA string, ac
 	}
 	return r.Reload(ctx)
 }
+
+// ApplyBundle can recover from an expired/corrupt previous active set. Approval
+// and new-root verification still apply; old roots need not be loadable.
+func ApplyBundle(ctx context.Context, s *store.Store, bundle []byte, approvedSHA string, actor store.Actor) (string, error) {
+	r := &Roots{store: s}
+	if err := r.Apply(ctx, bundle, approvedSHA, actor); err != nil {
+		return "", err
+	}
+	return r.Snapshot().Version, nil
+}
 func (r *Roots) persist(ctx context.Context, set validator.RootSet, actor store.Actor, action string) error {
 	return r.store.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		// One lock also serializes root bootstrap and concurrent controlled updates.

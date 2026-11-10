@@ -7,11 +7,14 @@ import (
 	"crypto/ecdsa"
 	"crypto/rsa"
 	"crypto/x509"
+	"crypto/x509/pkix"
+	"encoding/asn1"
 	"encoding/pem"
 	"encoding/xml"
 	"errors"
 	"fmt"
 	"io"
+	"math/big"
 	"strconv"
 	"strings"
 )
@@ -160,6 +163,10 @@ func checkXML(ctx context.Context, raw []byte) error {
 }
 
 func parse(ctx context.Context, raw []byte) ([]parsedKey, error) {
+	if len(raw) > MaxFileBytes {
+		return nil, ErrXML
+	}
+	raw = bytes.TrimPrefix(raw, []byte{0xef, 0xbb, 0xbf})
 	if err := checkXML(ctx, raw); err != nil {
 		return nil, err
 	}
@@ -188,8 +195,8 @@ func parse(ctx context.Context, raw []byte) ([]parsedKey, error) {
 			}
 			k := parsedKey{algorithm: alg, private: p}
 			for _, cert := range key.Chain.Certs {
-				block, rest := pem.Decode([]byte(cert.Text))
-				if cert.Format != "pem" || block == nil || block.Type != "CERTIFICATE" || len(block.Headers) != 0 || strings.TrimSpace(string(rest)) != "" {
+				block := singlePEM([]byte(cert.Text))
+				if cert.Format != "pem" || block == nil || block.Type != "CERTIFICATE" {
 					return nil, ErrXML
 				}
 				c, err := x509.ParseCertificate(block.Bytes)
@@ -205,9 +212,12 @@ func parse(ctx context.Context, raw []byte) ([]parsedKey, error) {
 }
 
 func parsePrivate(raw []byte) (crypto.Signer, error) {
-	block, rest := pem.Decode(raw)
-	if block == nil || len(block.Bytes) > 32*1024 || len(block.Headers) != 0 || strings.TrimSpace(string(rest)) != "" {
+	block := singlePEM(raw)
+	if block == nil || len(block.Bytes) > 8*1024 {
 		return nil, ErrXML
+	}
+	if err := boundPrivateDER(block.Type, block.Bytes); err != nil {
+		return nil, err
 	}
 	var key any
 	var err error
@@ -237,6 +247,71 @@ func parsePrivate(raw []byte) (crypto.Signer, error) {
 		return k, nil
 	default:
 		return nil, ErrXML
+	}
+}
+
+func singlePEM(raw []byte) *pem.Block {
+	raw = bytes.TrimSpace(raw)
+	if !bytes.HasPrefix(raw, []byte("-----BEGIN ")) || bytes.Count(raw, []byte("-----BEGIN ")) != 1 {
+		return nil
+	}
+	block, rest := pem.Decode(raw)
+	if block == nil || len(block.Headers) != 0 || len(bytes.TrimSpace(rest)) != 0 {
+		return nil
+	}
+	return block
+}
+
+// x509.ParsePKCS1PrivateKey performs RSA precomputation internally. Bound all
+// integers BEFORE invoking it, not merely after returning a *rsa.PrivateKey.
+func boundPrivateDER(kind string, der []byte) error {
+	switch kind {
+	case "PRIVATE KEY":
+		var wrapper struct {
+			Version    int
+			Algorithm  pkix.AlgorithmIdentifier
+			PrivateKey []byte
+		}
+		rest, err := asn1.Unmarshal(der, &wrapper)
+		if err != nil || len(rest) != 0 || wrapper.Version != 0 {
+			return ErrXML
+		}
+		switch {
+		case wrapper.Algorithm.Algorithm.Equal(asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 1, 1}):
+			return boundPrivateDER("RSA PRIVATE KEY", wrapper.PrivateKey)
+		case wrapper.Algorithm.Algorithm.Equal(asn1.ObjectIdentifier{1, 2, 840, 10045, 2, 1}):
+			return boundPrivateDER("EC PRIVATE KEY", wrapper.PrivateKey)
+		default:
+			return ErrXML
+		}
+	case "RSA PRIVATE KEY":
+		var key struct {
+			Version               int
+			N                     *big.Int
+			E                     int
+			D, P, Q, Dp, Dq, Qinv *big.Int
+			AdditionalPrimes      []struct{ Prime, Exponent, Coefficient *big.Int } `asn1:"optional,omitempty"`
+		}
+		rest, err := asn1.Unmarshal(der, &key)
+		if err != nil || len(rest) != 0 || key.Version != 0 || len(key.AdditionalPrimes) != 0 || key.E < 65537 || key.E > 2147483647 || key.E%2 == 0 {
+			return ErrXML
+		}
+		for _, n := range []*big.Int{key.N, key.D, key.P, key.Q, key.Dp, key.Dq, key.Qinv} {
+			if n == nil || n.Sign() <= 0 || n.BitLen() > 8192 {
+				return ErrXML
+			}
+		}
+		if key.N.BitLen() < 2048 {
+			return ErrXML
+		}
+		return nil
+	case "EC PRIVATE KEY":
+		if len(der) > 1024 {
+			return ErrXML
+		}
+		return nil
+	default:
+		return ErrXML
 	}
 }
 

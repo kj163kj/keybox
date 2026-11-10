@@ -169,10 +169,6 @@ func maintenance(ctx context.Context, s *store.Store, command string, log *slog.
 		log.Info("guest downloads disabled")
 		return nil
 	}
-	roots, err := trust.NewRoots(ctx, s)
-	if err != nil {
-		return err
-	}
 	flags := flag.NewFlagSet(command, flag.ContinueOnError)
 	path := flags.String("file", "", "reviewed root PEM")
 	approved := flags.String("sha256", "", "independently reviewed bundle digest")
@@ -183,9 +179,10 @@ func maintenance(ctx context.Context, s *store.Store, command string, log *slog.
 	if err != nil {
 		return err
 	}
-	if err := roots.Apply(ctx, raw, *approved, actor); err != nil {
+	version, err := trust.ApplyBundle(ctx, s, raw, *approved, actor)
+	if err != nil {
 		return err
 	}
-	log.Info("root set applied", "version", roots.Snapshot().Version)
+	log.Info("root set applied", "version", version)
 	return nil
 }

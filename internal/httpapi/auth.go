@@ -38,6 +38,11 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 	if !s.limit(w, r, []store.Limit{{Key: "login:username:" + userKey, Max: 10, Window: 15 * time.Minute}}) {
 		return
 	}
+	release, ok := s.validationSlot(w, r)
+	if !ok {
+		return
+	}
+	defer release()
 	var admin store.Admin
 	err := s.Store.DB.WithContext(r.Context()).Where("username = ?", input.Username).Take(&admin).Error
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {

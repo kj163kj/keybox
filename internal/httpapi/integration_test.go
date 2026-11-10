@@ -217,6 +217,7 @@ func TestMySQLAPIEndToEnd(t *testing.T) {
 	})
 	t.Run("authentication secure cookie CSRF confirmation", func(t *testing.T) {
 		requireStatus(t, h.request("GET", "/api/v1/admin/me", nil, "", "192.0.2.10", false, false, false), 401)
+		requireStatus(t, h.request("GET", "/api/v1/admin/keyboxes/"+id+"/download", nil, "", "192.0.2.10", false, false, false), 401)
 		body, _ := json.Marshal(map[string]string{"username": admin.Username, "password": h.password})
 		r := h.request("POST", "/api/v1/admin/login", body, "application/json", "192.0.2.10", false, false, false)
 		requireStatus(t, r, 200)
@@ -228,6 +229,7 @@ func TestMySQLAPIEndToEnd(t *testing.T) {
 		requireStatus(t, h.request("PATCH", "/api/v1/admin/settings/guest-download", []byte(`{"enabled":true}`), "application/json", "192.0.2.10", true, false, true), 403)
 		requireStatus(t, h.request("PATCH", "/api/v1/admin/settings/guest-download", []byte(`{"enabled":true}`), "application/json", "192.0.2.10", true, true, false), 409)
 		requireStatus(t, h.request("GET", "/api/v1/admin/me", nil, "", "192.0.2.10", true, false, false), 200)
+		requireStatus(t, h.request("GET", "/api/v1/admin/keyboxes?guest_download_policy=inherit", nil, "", "192.0.2.10", true, false, false), 200)
 	})
 	t.Run("complete guest download policy matrix", func(t *testing.T) {
 		counter := 20

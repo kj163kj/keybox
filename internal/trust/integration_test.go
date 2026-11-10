@@ -127,4 +127,11 @@ func TestMySQLControlledRoots(t *testing.T) {
 	if oldCount != int64(len(old.Certs)) {
 		t.Fatal("historical root set lost")
 	}
+	s.Now = func() time.Time { return f.Now.Add(49 * time.Hour) }
+	if err := r.Reload(context.Background()); err == nil {
+		t.Fatal("expired root still trusted")
+	}
+	if _, err := ApplyBundle(context.Background(), s, BuiltinPEM, validator.Fingerprint(BuiltinPEM), store.Actor{RequestID: domain.NewID()}); err != nil {
+		t.Fatal("cannot recover expired root set", err)
+	}
 }

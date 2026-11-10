@@ -97,8 +97,9 @@ func (v *Validator) Validate(ctx context.Context, raw []byte) (domain.Report, er
 			if !isRoot {
 				issuer = key.certs[j+1]
 			}
-			sigOK := bytes.Equal(cert.RawIssuer, issuer.RawSubject) &&
-				cert.CheckSignatureFrom(issuer) == nil && reasonableCertificate(cert) &&
+			sigOK := reasonableCertificate(cert) && reasonableCertificate(issuer) &&
+				bytes.Equal(cert.RawIssuer, issuer.RawSubject) &&
+				cert.CheckSignatureFrom(issuer) == nil &&
 				len(cert.UnhandledCriticalExtensions) == 0
 			if isRoot {
 				sigOK = sigOK && bytes.Equal(cert.RawIssuer, cert.RawSubject) && cert.IsCA
@@ -177,10 +178,18 @@ func (v *Validator) Validate(ctx context.Context, raw []byte) (domain.Report, er
 		if verifyTime.After(end) {
 			verifyTime = end
 		}
-		paths, verifyErr := key.certs[0].Verify(x509.VerifyOptions{
-			Roots: pool, Intermediates: intermediates, CurrentTime: verifyTime,
-			KeyUsages: []x509.ExtKeyUsage{x509.ExtKeyUsageAny},
-		})
+		safeParameters := true
+		for _, c := range key.certs {
+			safeParameters = safeParameters && reasonableCertificate(c)
+		}
+		var paths [][]*x509.Certificate
+		var verifyErr error
+		if safeParameters {
+			paths, verifyErr = key.certs[0].Verify(x509.VerifyOptions{
+				Roots: pool, Intermediates: intermediates, CurrentTime: verifyTime,
+				KeyUsages: []x509.ExtKeyUsage{x509.ExtKeyUsageAny},
+			})
+		}
 		exact := false
 		for _, path := range paths {
 			if len(path) != len(key.certs) {
@@ -245,7 +254,7 @@ func reasonableCertificate(c *x509.Certificate) bool {
 	switch c.PublicKey.(type) {
 	case *rsa.PublicKey:
 		key := c.PublicKey.(*rsa.PublicKey)
-		if key.N.BitLen() < 2048 || key.N.BitLen() > 8192 || key.E < 65537 {
+		if key.N.BitLen() < 2048 || key.N.BitLen() > 8192 || key.E < 65537 || key.E > 2147483647 || key.E%2 == 0 {
 			return false
 		}
 	case *ecdsa.PublicKey:

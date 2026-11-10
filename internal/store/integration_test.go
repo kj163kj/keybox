@@ -16,6 +16,7 @@ import (
 
 func TestMySQLQuotaAtomicityAndLeases(t *testing.T) {
 	s := testutil.Database(t)
+	s.Now = func() time.Time { return time.Date(2026, 11, 10, 12, 0, 0, 0, time.UTC) }
 	ctx := context.Background()
 	var allowed atomic.Int32
 	var unexpected atomic.Int32

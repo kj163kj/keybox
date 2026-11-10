@@ -44,6 +44,21 @@ func (s *Server) download(w http.ResponseWriter, r *http.Request, actorType stri
 		}
 		return
 	}
+	release, err := s.Store.Acquire(r.Context())
+	if err != nil {
+		if errors.Is(err, store.ErrRateLimited) {
+			if logErr := s.Store.LogDownload(s.Store.DB.WithContext(r.Context()), id, actorType, "capacity_limited", a); logErr != nil {
+				s.failure(w, r, logErr)
+				return
+			}
+			w.Header().Set("Retry-After", "5")
+			s.write(w, r, 429, 42902, "operation capacity exhausted", nil)
+		} else {
+			s.failure(w, r, err)
+		}
+		return
+	}
+	defer release()
 	blob, err := s.Store.AuthorizeDownload(r.Context(), id, actorType, a)
 	if err != nil {
 		s.failure(w, r, err)
