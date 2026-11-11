@@ -31,7 +31,7 @@ python scripts/generate_openapi.py --check
 2. 生成独立随机令牌（例如 `openssl rand -hex 32`），仅通过后端环境变量
    `KEYBOX_SETUP_TOKEN` 或 secret mount `KEYBOX_SETUP_TOKEN_FILE` 注入。
    不要写入 Git、URL、前端 `VITE_*` 变量或构建产物。
-3. 启动 API；执行 `npm ci && npm run build`，将生产 `dist/` 作为 HTTPS 站点的静态目录，
+3. 启动 API；执行 `pnpm install --frozen-lockfile && pnpm build`，将生产 `dist/` 作为 HTTPS 站点的静态目录，
    同源代理 `/api/`。`deploy/nginx.conf.example` 含页面路由回退配置。
 4. 访问 `/admin/login`，未初始化时会自动进入 `/admin/setup`。输入令牌，自行设置用户名、
    密码及确认密码；密码须为 **16–72 UTF-8 字节**。创建后使用该账号正常登录。

@@ -350,8 +350,8 @@ bin/keybox migrate-up
 # 切换为最小权限运行 DSN，注入必要密钥、Origin 和一次性初始化令牌：
 bin/keybox serve
 # 前端单独构建，将 dist/ 交给 HTTPS 静态站点：
-npm ci
-npm run build
+pnpm install --frozen-lockfile
+pnpm build
 # 浏览器访问 /admin/login，按初始化页面设置账号密码。
 ```
 
