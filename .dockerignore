@@ -10,3 +10,9 @@ coverage.out
 dist
 dist-preview
 node_modules
+secrets
+data
+DEPLOYED_COMMIT
+DEPLOYED_RELEASE.json
+*.log
+*.tar

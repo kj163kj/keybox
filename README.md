@@ -9,6 +9,9 @@ Go 1.26+（Docker 构建使用 1.27.3）+ Chi + GORM + MySQL 8.0 后端，附 Re
 完整请求/响应及错误码见 [API 说明](docs/api.md) 和 [OpenAPI 契约](api/openapi.json)；
 验收证据见 [测试与验收](docs/acceptance.md)。
 
+1Panel 部署使用 [专用 Compose 配置与操作说明](deploy/1panel/README.md)，
+入口为 `127.0.0.1:26000`，接入现有 `1panel-network`。
+
 ```sh
 go build -o bin/keybox ./cmd/keybox
 go test ./...

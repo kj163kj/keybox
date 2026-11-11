@@ -1,0 +1,155 @@
+name: keybox
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  db:
+    image: mysql:8.0.44
+    container_name: keybox-db
+    command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_0900_ai_ci", "--innodb-buffer-pool-size=256M", "--max-connections=100"]
+    environment:
+      MYSQL_DATABASE: keybox
+      MYSQL_USER: keybox_migrator
+      MYSQL_PASSWORD_FILE: /run/secrets/mysql_migrator_password
+      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/mysql_root_password
+      MYSQL_ROOT_HOST: "%"
+    secrets:
+      - mysql_root_password
+      - mysql_migrator_password
+      - mysql_runtime_password
+    volumes:
+      - ./data/mysql:/var/lib/mysql
+      - ./deploy/1panel/init-database.sh:/docker-entrypoint-initdb.d/10-keybox.sh:ro
+    networks: [private]
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "--silent"]
+      interval: 5s
+      timeout: 3s
+      retries: 40
+      start_period: 30s
+    restart: unless-stopped
+    mem_limit: 1g
+    logging: *logging
+
+  migrate:
+    image: keybox-api:${KEYBOX_RELEASE:?set release revision}
+    container_name: keybox-migrate
+    command: ["migrate-up"]
+    environment:
+      KEYBOX_DB_DSN_FILE: /run/secrets/migration_dsn
+    secrets: [migration_dsn]
+    networks: [private]
+    depends_on:
+      db:
+        condition: service_healthy
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    restart: "no"
+    logging: *logging
+
+  grants:
+    image: mysql:8.0.44
+    container_name: keybox-grants
+    entrypoint: ["/bin/sh", "/bootstrap/grant-runtime.sh"]
+    secrets: [mysql_root_password]
+    volumes:
+      - ./deploy/1panel/grant-runtime.sh:/bootstrap/grant-runtime.sh:ro
+      - ./deploy/runtime-grants.sql:/bootstrap/runtime-grants.sql:ro
+    networks: [private]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    restart: "no"
+    logging: *logging
+
+  api:
+    image: keybox-api:${KEYBOX_RELEASE:?set release revision}
+    build:
+      context: .
+      dockerfile: Dockerfile
+      labels:
+        org.opencontainers.image.revision: ${KEYBOX_RELEASE}
+    container_name: keybox-api
+    environment:
+      KEYBOX_DB_DSN_FILE: /run/keybox/db_dsn
+      KEYBOX_ENCRYPTION_KEYS_FILE: /run/keybox/encryption_keys
+      KEYBOX_IP_HASH_KEY_FILE: /run/keybox/ip_hash_key
+      KEYBOX_CSRF_KEY_FILE: /run/keybox/csrf_key
+      KEYBOX_SETUP_TOKEN_FILE: ${KEYBOX_SETUP_TOKEN_FILE-/run/keybox/setup_token}
+      KEYBOX_ACTIVE_KEY_ID: primary-v1
+      KEYBOX_ALLOWED_ORIGINS: ${KEYBOX_ALLOWED_ORIGINS:?set exact HTTPS origin}
+      KEYBOX_TRUSTED_PROXIES: 172.31.26.10/32
+      KEYBOX_HTTP_ADDR: :8080
+    volumes:
+      - ./secrets/api:/run/keybox:ro
+    networks: [private]
+    depends_on:
+      grants:
+        condition: service_completed_successfully
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    tmpfs: ["/tmp:size=4m,noexec,nosuid,nodev"]
+    restart: unless-stopped
+    stop_grace_period: 20s
+    mem_limit: 512m
+    logging: *logging
+
+  web:
+    image: keybox-web:${KEYBOX_RELEASE:?set release revision}
+    build:
+      context: .
+      dockerfile: deploy/1panel/Dockerfile.web
+      labels:
+        org.opencontainers.image.revision: ${KEYBOX_RELEASE}
+    container_name: keybox-web
+    ports:
+      - "127.0.0.1:26000:8080"
+    networks:
+      private:
+        ipv4_address: 172.31.26.10
+      1panel-network:
+    depends_on:
+      api:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    tmpfs: ["/tmp:size=16m,noexec,nosuid,nodev"]
+    restart: unless-stopped
+    mem_limit: 128m
+    logging: *logging
+
+networks:
+  private:
+    name: keybox-private
+    ipam:
+      config:
+        - subnet: 172.31.26.0/24
+  1panel-network:
+    external: true
+    name: 1panel-network
+
+secrets:
+  mysql_root_password:
+    file: ./secrets/mysql_root_password
+  mysql_migrator_password:
+    file: ./secrets/mysql_migrator_password
+  mysql_runtime_password:
+    file: ./secrets/mysql_runtime_password
+  migration_dsn:
+    file: ./secrets/migration_dsn
