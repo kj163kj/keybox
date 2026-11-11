@@ -137,8 +137,19 @@ describe('Keybox Frontend Contract-Driven Suite', () => {
   });
 
   it('5. 管理员未登录跳转：未登录访问 /admin/keyboxes 自动跳转至 /admin/login', async () => {
+    const user = userEvent.setup();
     resetMockState({ authenticated: false });
-    renderWithRouter(['/admin/keyboxes']);
+    renderWithRouter(['/']);
+
+    // Top header merges admin links into a single "后台管理" entry
+    const adminEntry = screen.getByTestId('nav-admin-entry');
+    expect(adminEntry).toHaveTextContent('后台管理');
+    expect(screen.queryByRole('link', { name: 'Keybox 管理' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: '审计日志' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: '系统设置' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: '管理员登录' })).not.toBeInTheDocument();
+
+    await user.click(adminEntry);
 
     await waitFor(() => {
       expect(screen.getByTestId('login-submit-btn')).toBeInTheDocument();

@@ -1,10 +1,7 @@
 import React from 'react';
-import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   Database,
-  FileCheck2,
-  FileText,
-  LogIn,
   LogOut,
   Search,
   Settings,
@@ -17,8 +14,10 @@ import { useAuth } from '../context/AuthContext';
 
 export function AppLayout() {
   const { admin, logout } = useAuth();
+  const location = useLocation();
   const navigate = useNavigate();
   const [mockEnabled, setMockEnabled] = React.useState(isMockMode());
+  const isAdminRoute = location.pathname.startsWith('/admin');
 
   const handleLogout = async () => {
     try {
@@ -91,22 +90,17 @@ export function AppLayout() {
 
             <div className="h-4 w-px bg-slate-200" />
 
-            <nav className="flex flex-wrap items-center gap-1" aria-label="管理端导航">
-              <NavLink to="/admin/keyboxes" className={navLinkClass}>
-                <FileCheck2 className="h-3.5 w-3.5" />
-                <span>Keybox 管理</span>
-              </NavLink>
-              <NavLink to="/admin/audit-logs" className={navLinkClass}>
-                <FileText className="h-3.5 w-3.5" />
-                <span>审计日志</span>
-              </NavLink>
-              <NavLink to="/admin/system" className={navLinkClass}>
-                <Settings className="h-3.5 w-3.5" />
-                <span>系统设置</span>
-              </NavLink>
-            </nav>
+            <Link
+              to="/admin/keyboxes"
+              data-testid="nav-admin-entry"
+              aria-current={isAdminRoute ? 'page' : undefined}
+              className={navLinkClass({ isActive: isAdminRoute })}
+            >
+              <Settings className="h-3.5 w-3.5" />
+              <span>后台管理</span>
+            </Link>
 
-            {admin ? (
+            {admin && (
               <div className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50/70 px-2.5 py-1 text-xs">
                 <span className="font-medium text-emerald-900">{admin.username}</span>
                 <button
@@ -118,11 +112,6 @@ export function AppLayout() {
                   <span>退出</span>
                 </button>
               </div>
-            ) : (
-              <NavLink to="/admin/login" className={navLinkClass}>
-                <LogIn className="h-3.5 w-3.5" />
-                <span>管理员登录</span>
-              </NavLink>
             )}
           </div>
         </div>
