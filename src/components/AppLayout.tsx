@@ -70,7 +70,7 @@ export function AppLayout() {
               </div>
               <div>
                 <span className="text-[13px] font-semibold tracking-tight text-slate-900">
-                  Keybox Attestation
+                  Keybox 仓库
                 </span>
                 <span className="block text-[10.5px] font-medium text-slate-500">
                   证书状态查询
@@ -150,7 +150,7 @@ export function AppLayout() {
       <footer className="border-t border-black/5 bg-white/50 py-3.5 text-xs text-slate-500 backdrop-blur-md">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-2 px-4 sm:flex-row">
           <span>
-            Keybox · 证书状态查询
+            Keybox 仓库
           </span>
           <span>
             下载权限由管理员控制
