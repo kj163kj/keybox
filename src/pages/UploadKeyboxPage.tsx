@@ -48,7 +48,7 @@ export function UploadKeyboxPage() {
     }
     setIsValidating(false);
     setIsUploading(false);
-    toast.info('已取消当前正在进行的请求');
+    toast.info('已取消');
   };
 
   const handleSelectAndValidateFile = async (file: File) => {
@@ -67,19 +67,19 @@ export function UploadKeyboxPage() {
     // Frontend baseline validation: .xml extension and <= MAX_UPLOAD_BYTES (1 MiB)
     if (!file.name.toLowerCase().endsWith('.xml')) {
       setClientFileError(
-        `文件扩展名不合法（${file.name}）：仅支持未压缩的 .xml Android Keybox 文件。`,
+        '请选择未压缩的 .xml 文件。',
       );
       return;
     }
 
     if (file.size === 0) {
-      setClientFileError('所选文件为空（0 字节），请选择有效的 .xml Keybox 文件。');
+      setClientFileError('文件为空，请重新选择。');
       return;
     }
 
     if (file.size > MAX_UPLOAD_BYTES) {
       setClientFileError(
-        `文件体积超出限制：当前文件为 ${formatBytes(file.size)}，最大允许 ${formatBytes(MAX_UPLOAD_BYTES)} (1 MiB)。`,
+        `文件过大：${formatBytes(file.size)}，上限 ${formatBytes(MAX_UPLOAD_BYTES)}。`,
       );
       return;
     }
@@ -93,9 +93,9 @@ export function UploadKeyboxPage() {
       setValidationResult(res.data);
       setValidateRequestId(res.requestId);
       if (res.data.overall_status === 'valid') {
-        toast.success('上传前预检通过 (overall_status = valid)，可确认上传入库');
+        toast.success('校验通过，可以上传');
       } else {
-        toast.warning(`预检完成：总体状态为 ${res.data.overall_status}，禁止正式入库`);
+        toast.warning(`校验未通过：${STATUS_META[res.data.overall_status].shortLabel}`);
       }
     } catch (err) {
       setApiError(err);
@@ -123,7 +123,7 @@ export function UploadKeyboxPage() {
 
     try {
       const res = await apiClient.uploadKeybox(selectedFile, { signal: controller.signal });
-      toast.success(`Keybox 上传入库成功 (ID: ${res.data.id})`);
+      toast.success(`上传成功：${res.data.id}`);
       navigate(`/keyboxes/${res.data.id}`);
     } catch (err) {
       setApiError(err);
@@ -180,14 +180,10 @@ export function UploadKeyboxPage() {
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-2xs">
         <div className="space-y-1.5">
           <h1 className="text-xl font-bold tracking-tight text-slate-900">
-            上传 Keybox 与入库前密码学预检
+            上传 Keybox
           </h1>
           <p className="text-xs leading-relaxed text-slate-600">
-            上传无需登录。选择或拖拽 <code className="font-mono">.xml</code> Keybox 文件后，系统将首先调用{' '}
-            <code className="font-mono">POST /api/v1/keyboxes/validate</code>{' '}
-            执行封闭 XML 解析、私钥公私钥配对、证书链签名、Google 信任根及 CRL 吊销状态检查。仅当{' '}
-            <code className="font-mono">overall_status === "valid"</code> 时才允许正式调用{' '}
-            <code className="font-mono">POST /api/v1/keyboxes</code> 入库。
+            无需登录。选择文件，校验通过后确认上传。
           </p>
         </div>
 
@@ -231,12 +227,10 @@ export function UploadKeyboxPage() {
             <Upload className="h-5 w-5" />
           </div>
           <p className="mt-3 text-sm font-semibold text-slate-900">
-            点击选择或拖拽 Android Keybox <code className="font-mono">.xml</code> 文件至此
+            点击选择文件，或拖拽至此
           </p>
           <p className="mt-1 text-xs text-slate-500">
-            仅接受 UTF-8 未压缩 <code className="font-mono">.xml</code> 文件 · 单文件上限{' '}
-            <strong className="font-semibold text-slate-700">{formatBytes(MAX_UPLOAD_BYTES)}</strong>{' '}
-            (1,048,576 字节) · 前端绝不读取或展示私钥原文
+            UTF-8 XML · 不支持压缩 · 最大 <strong className="font-semibold text-slate-700">{formatBytes(MAX_UPLOAD_BYTES)}</strong>
           </p>
           {selectedFile && (
             <div className="mt-4 inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-medium text-slate-800 shadow-2xs">
@@ -252,7 +246,7 @@ export function UploadKeyboxPage() {
           <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3.5 text-xs">
             <div className="flex items-center gap-1.5 font-semibold text-slate-700">
               <Sparkles className="h-3.5 w-3.5 text-indigo-600" />
-              <span>开发期契约场景快速模拟（点击自动构造对应测试文件并触发预检）：</span>
+              <span>试用示例</span>
             </div>
             <div className="mt-2 flex flex-wrap gap-2">
               <button
@@ -260,49 +254,49 @@ export function UploadKeyboxPage() {
                 onClick={() => createSampleFile('pixel9-valid-keybox.xml')}
                 className="btn-interactive rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1 font-medium text-emerald-900 hover:bg-emerald-100"
               >
-                1. 有效 Keybox (valid)
+                有效文件
               </button>
               <button
                 type="button"
                 onClick={() => createSampleFile('oem-revoked-chain.xml')}
                 className="btn-interactive rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1 font-medium text-rose-900 hover:bg-rose-100"
               >
-                2. 含已吊销与根不受信链 (revoked)
+                证书已吊销
               </button>
               <button
                 type="button"
                 onClick={() => createSampleFile('crl-unknown-indeterminate.xml')}
                 className="btn-interactive rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1 font-medium text-amber-900 hover:bg-amber-100"
               >
-                3. CRL 不可用/不确定 (indeterminate)
+                状态不确定
               </button>
               <button
                 type="button"
                 onClick={() => createSampleFile('duplicate-keybox.xml')}
                 className="btn-interactive rounded-lg border border-slate-200 bg-white px-2.5 py-1 font-medium text-slate-800 hover:bg-slate-100"
               >
-                4. 预检有效但入库重复 (409 / 40901)
+                重复文件
               </button>
               <button
                 type="button"
                 onClick={() => createSampleFile('malformed-422.xml')}
                 className="btn-interactive rounded-lg border border-slate-200 bg-white px-2.5 py-1 font-medium text-slate-800 hover:bg-slate-100"
               >
-                5. XML/密钥解析失败 (422 / 42201)
+                格式错误
               </button>
               <button
                 type="button"
                 onClick={() => createSampleFile('rate-limit-429.xml')}
                 className="btn-interactive rounded-lg border border-slate-200 bg-white px-2.5 py-1 font-medium text-slate-800 hover:bg-slate-100"
               >
-                6. 触发配额限流 (429 + Retry-After)
+                请求限流
               </button>
               <button
                 type="button"
                 onClick={() => createSampleFile('service-unavailable-503.xml')}
                 className="btn-interactive rounded-lg border border-slate-200 bg-white px-2.5 py-1 font-medium text-slate-800 hover:bg-slate-100"
               >
-                7. 依赖服务不可用 (503 / 50301)
+                服务不可用
               </button>
             </div>
           </div>
@@ -318,7 +312,7 @@ export function UploadKeyboxPage() {
         >
           <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-rose-600" />
           <div>
-            <p className="font-semibold">前端文件前置校验未通过（已拦截上传请求）</p>
+            <p className="font-semibold">文件不符合要求</p>
             <p className="mt-1 text-rose-800">{clientFileError}</p>
           </div>
         </div>
@@ -334,8 +328,8 @@ export function UploadKeyboxPage() {
             <Loader2 className="h-4 w-4 animate-spin text-indigo-600" />
             <span className="font-medium">
               {isValidating
-                ? '正在调用 POST /api/v1/keyboxes/validate 执行密码学与证书链预检…'
-                : '正在调用 POST /api/v1/keyboxes 执行完整重验与加密入库…'}
+                ? '正在校验…'
+                : '正在上传…'}
             </span>
           </div>
           <button
@@ -361,22 +355,18 @@ export function UploadKeyboxPage() {
             <div className="space-y-2">
               <div className="flex flex-wrap items-center gap-2">
                 <h2 className="text-sm font-bold text-amber-950">
-                  该 Keybox 或证书链材料已存在 (HTTP 409 · code 40901)
+                  Keybox 已存在 · 40901
                 </h2>
                 <code className="rounded bg-white/80 px-2 py-0.5 font-mono text-[11px] text-amber-900">
                   request_id: {duplicateConflict.requestId}
                 </code>
               </div>
               <p className="leading-relaxed text-amber-900">
-                服务端对文件 SHA-256、证书指纹集合摘要及链首叶证书指纹同时执行去重检查。
-                <strong>契约说明：</strong>根据 <code className="font-mono">api/openapi.json</code> 中{' '}
-                <code className="font-mono">Error409</code> 契约定义，409 响应的{' '}
-                <code className="font-mono">data</code> 固定为 <code className="font-mono">null</code>
-                （因去重范围包含管理员隐藏或软删除记录，服务端不直接回传已有记录 ID 以防枚举）。
+                文件或证书已收录，无需重复上传。可按证书指纹查找公开记录。
               </p>
               {duplicateConflict.fileSha256 && (
                 <p className="font-mono text-[11px] text-amber-800">
-                  当前文件 SHA-256：{duplicateConflict.fileSha256}
+                  文件 SHA-256：{duplicateConflict.fileSha256}
                 </p>
               )}
               <div className="flex flex-wrap items-center gap-2.5 pt-1">
@@ -388,14 +378,14 @@ export function UploadKeyboxPage() {
                     className="btn-interactive inline-flex items-center gap-1.5 rounded-lg bg-amber-900 px-3 py-1.5 font-semibold text-white hover:bg-amber-800"
                   >
                     <Search className="h-3.5 w-3.5" />
-                    <span>按链首证书指纹查询已有 Keybox ID</span>
+                    <span>查找已有记录</span>
                   </Link>
                 )}
                 <Link
                   to="/"
                   className="btn-interactive inline-flex items-center gap-1.5 rounded-lg border border-amber-300 bg-white px-3 py-1.5 font-medium text-amber-900 hover:bg-amber-100"
                 >
-                  <span>返回公开 Keybox 列表</span>
+                  <span>返回列表</span>
                 </Link>
               </div>
             </div>
@@ -438,8 +428,8 @@ export function UploadKeyboxPage() {
                   )}
                   <span className="text-sm font-bold text-slate-900">
                     {canConfirmUpload
-                      ? '预检全部通过：允许正式上传入库'
-                      : '预检未通过或状态不确定：已禁止正式上传'}
+                      ? '校验通过，可以上传'
+                      : '校验未通过，暂不能上传'}
                   </span>
                   <StatusBadge status={validationResult.overall_status} showCode />
                 </div>
@@ -448,7 +438,7 @@ export function UploadKeyboxPage() {
                 </p>
                 {validateRequestId && (
                   <p className="font-mono text-[11px] text-slate-500">
-                    预检 request_id: {validateRequestId}
+                    请求 ID： {validateRequestId}
                   </p>
                 )}
               </div>
@@ -463,17 +453,14 @@ export function UploadKeyboxPage() {
                   className="btn-interactive inline-flex shrink-0 items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-xs font-semibold text-white shadow-xs hover:bg-emerald-700 disabled:opacity-50"
                 >
                   <Upload className="h-4 w-4" />
-                  <span>{isUploading ? '正在上传入库…' : '确认上传'}</span>
+                  <span>{isUploading ? '正在上传…' : '确认上传'}</span>
                 </button>
               ) : (
                 <div
                   className="rounded-xl border border-rose-200 bg-white px-3.5 py-2 text-xs font-medium text-rose-800"
                   data-testid="upload-disabled-reason"
                 >
-                  原因：总体结论为{' '}
-                  <code className="font-mono font-semibold">{validationResult.overall_status}</code>
-                  （非 <code className="font-mono">valid</code>），服务端{' '}
-                  <code className="font-mono">POST /api/v1/keyboxes</code> 将以 42202 拒绝入库
+                  当前状态：{STATUS_META[validationResult.overall_status].shortLabel}，暂不能上传。
                 </div>
               )}
             </div>
@@ -481,7 +468,7 @@ export function UploadKeyboxPage() {
 
           <ValidationReportView
             validation={validationResult}
-            title="上传前预检详细报告（已默认展开异常链与异常证书）"
+            title="校验结果"
           />
         </div>
       )}

@@ -40,7 +40,7 @@ export function StatusBadge({
     shortLabel: '未知',
     tone: 'amber' as const,
     priority: 0,
-    description: '未知状态枚举，按安全准则不视为有效。',
+    description: '状态未知，暂无法确认有效性。',
     allowConfirmUpload: false,
   };
 
@@ -96,7 +96,7 @@ export function EffectiveDownloadBadge({ effective }: { effective: boolean }) {
     return (
       <span
         className="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-900"
-        title="guest_downloadable_effective = true：当前允许游客下载原始 Keybox（含私钥）"
+        title="可下载原文件，文件含私钥"
       >
         <Download className="h-3.5 w-3.5 shrink-0 text-amber-700" />
         <span>允许游客下载</span>
@@ -106,7 +106,7 @@ export function EffectiveDownloadBadge({ effective }: { effective: boolean }) {
   return (
     <span
       className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600"
-      title="guest_downloadable_effective = false：管理员未开放游客下载"
+      title="暂未开放游客下载"
     >
       <Lock className="h-3.5 w-3.5 shrink-0 text-slate-500" />
       <span>不可下载</span>
@@ -129,7 +129,6 @@ export function PolicyBadge({ policy }: { policy: DownloadPolicy }) {
       title={meta.description}
     >
       <span>{meta.shortLabel}</span>
-      <code className="text-[11px] opacity-75">({policy})</code>
     </span>
   );
 }

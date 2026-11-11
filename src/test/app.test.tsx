@@ -69,7 +69,7 @@ describe('Keybox Frontend Contract-Driven Suite', () => {
     await user.upload(fileInput, invalidExtFile);
 
     expect(await screen.findByTestId('client-file-error')).toHaveTextContent(
-      '仅支持未压缩的 .xml Android Keybox 文件',
+      '请选择未压缩的 .xml 文件',
     );
 
     // Server-side CRL unknown -> indeterminate must NOT be shown as valid and must disable upload
@@ -83,10 +83,10 @@ describe('Keybox Frontend Contract-Driven Suite', () => {
     });
     expect(screen.queryByTestId('confirm-upload-btn')).not.toBeInTheDocument();
     expect(screen.getByTestId('upload-decision-box')).toHaveTextContent(
-      '预检未通过或状态不确定：已禁止正式上传',
+      '校验未通过，暂不能上传',
     );
     expect(screen.getAllByTestId('crl-badge-unknown')[0]).toHaveTextContent(
-      '状态未知 / 暂不可判定 (unknown)',
+      '状态未知',
     );
   });
 
@@ -109,7 +109,7 @@ describe('Keybox Frontend Contract-Driven Suite', () => {
 
     const conflictBanner = await screen.findByTestId('duplicate-conflict-banner');
     expect(conflictBanner).toHaveTextContent('40901');
-    expect(conflictBanner).toHaveTextContent('按链首证书指纹查询已有 Keybox ID');
+    expect(conflictBanner).toHaveTextContent('查找已有记录');
   });
 
   it('4. 证书查询页：前端校验非法十六进制输入，空结果展示明确空状态且状态为 indeterminate（绝不判定为有效）', async () => {
@@ -123,7 +123,7 @@ describe('Keybox Frontend Contract-Driven Suite', () => {
     await user.type(searchInput, 'not-a-hex-serial!!');
     await user.click(submitBtn);
     expect(await screen.findByTestId('cert-input-error')).toHaveTextContent(
-      '序列号必须为十六进制字符',
+      '序列号仅支持十六进制字符',
     );
 
     // Valid hex serial that does not exist in DB -> empty result + indeterminate status
@@ -132,8 +132,8 @@ describe('Keybox Frontend Contract-Driven Suite', () => {
     await user.click(submitBtn);
 
     const emptyState = await screen.findByTestId('cert-search-empty');
-    expect(emptyState).toHaveTextContent('未找到站内公开 Keybox 匹配的证书记录');
-    expect(screen.getByTestId('cert-query-summary')).toHaveTextContent('状态不确定 (Indeterminate)');
+    expect(emptyState).toHaveTextContent('未找到匹配证书');
+    expect(screen.getByTestId('cert-query-summary')).toHaveTextContent('不确定');
   });
 
   it('5. 管理员未登录跳转：未登录访问 /admin/keyboxes 自动跳转至 /admin/login', async () => {
@@ -143,7 +143,7 @@ describe('Keybox Frontend Contract-Driven Suite', () => {
     await waitFor(() => {
       expect(screen.getByTestId('login-submit-btn')).toBeInTheDocument();
     });
-    expect(screen.getByText('管理员安全登录')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '管理员登录' })).toBeInTheDocument();
   });
 
   it('6. 游客下载按钮显示逻辑：严格依赖后端 guest_downloadable_effective，全局关闭时即使单条为 allowed 也不可下载，全局开启但单条为 denied 也不可下载', async () => {
@@ -158,7 +158,7 @@ describe('Keybox Frontend Contract-Driven Suite', () => {
       expect(screen.getByTestId('guest-download-disabled-notice')).toBeInTheDocument();
     });
     expect(screen.queryByTestId('guest-download-btn')).not.toBeInTheDocument();
-    expect(screen.getByTestId('guest-download-disabled-notice')).toHaveTextContent('管理员未开放下载');
+    expect(screen.getByTestId('guest-download-disabled-notice')).toHaveTextContent('暂未开放下载');
     unmount();
 
     // Case B: Global ON, record 4d5e... has guest_download_policy = 'denied'
@@ -201,7 +201,7 @@ describe('Keybox Frontend Contract-Driven Suite', () => {
 
     const errorBanner = await screen.findByTestId('api-error-banner');
     expect(errorBanner).toHaveTextContent('40301');
-    expect(errorBanner).toHaveTextContent('管理员未开放游客下载');
+    expect(errorBanner).toHaveTextContent('下载未开放');
     unmount();
 
     // Second: test 429 rate limit with Retry-After countdown on Upload page
@@ -213,7 +213,7 @@ describe('Keybox Frontend Contract-Driven Suite', () => {
     await user.upload(fileInput, rateLimitFile);
 
     const countdown = await screen.findByTestId('retry-after-countdown');
-    expect(countdown).toHaveTextContent('Retry-After');
+    expect(countdown).toHaveTextContent('秒后再试');
     expect(screen.getByTestId('api-error-banner')).toHaveTextContent('42901');
   });
 
@@ -225,7 +225,7 @@ describe('Keybox Frontend Contract-Driven Suite', () => {
     renderWithRouter(['/admin/system']);
 
     await waitFor(() => {
-      expect(screen.getByTestId('global-switch-status-badge')).toHaveTextContent('当前已关闭');
+      expect(screen.getByTestId('global-switch-status-badge')).toHaveTextContent('已关闭');
     });
 
     await user.click(screen.getByTestId('toggle-global-download-btn'));
@@ -240,7 +240,7 @@ describe('Keybox Frontend Contract-Driven Suite', () => {
     await user.click(confirmBtn);
 
     await waitFor(() => {
-      expect(screen.getByTestId('global-switch-status-badge')).toHaveTextContent('当前已开启');
+      expect(screen.getByTestId('global-switch-status-badge')).toHaveTextContent('已开启');
     });
   });
 });

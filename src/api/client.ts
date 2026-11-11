@@ -182,7 +182,7 @@ async function requestJson<T>(
       throw new ApiClientError({
         httpStatus: 408,
         code: 40801,
-        serverMessage: err.name === 'TimeoutError' ? '请求超时 (15s 预算耗尽)' : '请求已取消',
+        serverMessage: err.name === 'TimeoutError' ? '请求超时' : '请求已取消',
         requestId: nextRequestId(),
       });
     }

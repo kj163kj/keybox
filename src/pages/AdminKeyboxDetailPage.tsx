@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { apiClient } from '../api/client';
-import { DOWNLOAD_POLICY_META } from '../api/contract';
+import { DOWNLOAD_POLICY_META, STATUS_META } from '../api/contract';
 import type { DownloadPolicy, ValidationRun } from '../api/openapi.types';
 import { ErrorBanner } from '../components/ErrorBanner';
 import { PaginationBar } from '../components/PaginationBar';
@@ -84,7 +84,7 @@ export function AdminKeyboxDetailPage() {
     try {
       const res = await apiClient.adminRevalidateKeybox(id);
       toast.success(
-        `重新校验完成：最新状态为 ${res.data.overall_status} (request_id: ${shortHex(res.requestId, 6, 4)})`,
+        `校验完成：${STATUS_META[res.data.overall_status].shortLabel}`,
       );
       await invalidateAll();
     } catch (err) {
@@ -101,7 +101,7 @@ export function AdminKeyboxDetailPage() {
     try {
       const res = await apiClient.downloadAdminKeybox(id);
       toast.success(
-        `管理员受控下载已触发 (${res.filename})，本次下载已写入审计日志与下载日志`,
+        `已开始下载：${res.filename}`,
       );
     } catch (err) {
       setActionError(err);
@@ -114,14 +114,14 @@ export function AdminKeyboxDetailPage() {
     if (!id || isSavingNote) return;
     const byteLen = new TextEncoder().encode(noteInput).length;
     if (byteLen > 2000) {
-      toast.error(`管理员备注超出 2000 UTF-8 字节上限（当前 ${byteLen} 字节）`);
+      toast.error(`备注过长：${byteLen} 字节，上限 2000 字节。`);
       return;
     }
     setIsSavingNote(true);
     setActionError(null);
     try {
       await apiClient.adminPatchKeybox(id, { admin_note: noteInput });
-      toast.success('已保存管理员备注（审计日志仅记录发生变更，不记录备注原文）');
+      toast.success('备注已保存');
       await invalidateAll();
     } catch (err) {
       setActionError(err);
@@ -140,7 +140,7 @@ export function AdminKeyboxDetailPage() {
           guest_download_policy: pendingAction.nextPolicy,
         });
         toast.success(
-          `单条下载策略已更新为 ${res.data.guest_download_policy}（当前生效可下载: ${String(res.data.guest_downloadable_effective)}）`,
+          `下载权限：${DOWNLOAD_POLICY_META[res.data.guest_download_policy].shortLabel}`,
         );
         setPendingAction(null);
         await invalidateAll();
@@ -148,12 +148,12 @@ export function AdminKeyboxDetailPage() {
         const res = await apiClient.adminPatchKeybox(detail.id, {
           visibility: pendingAction.nextVisibility,
         });
-        toast.success(`可见性已更新为 ${res.data.visibility}`);
+        toast.success(`已${res.data.visibility === 'public' ? '恢复公开' : '下架'}`);
         setPendingAction(null);
         await invalidateAll();
       } else if (pendingAction.type === 'delete') {
         await apiClient.adminDeleteKeybox(detail.id);
-        toast.success('已软删除该 Keybox');
+        toast.success('已删除');
         setPendingAction(null);
         await invalidateAll();
         navigate('/admin/keyboxes');
@@ -177,14 +177,14 @@ export function AdminKeyboxDetailPage() {
             className="btn-interactive inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
-            <span>返回管理员 Keybox 列表</span>
+            <span>返回管理列表</span>
           </Link>
           {detail && detail.visibility === 'public' && (
             <Link
               to={`/keyboxes/${detail.id}`}
               className="btn-interactive inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100"
             >
-              <span>查看公开视角详情页</span>
+              <span>查看公开详情</span>
             </Link>
           )}
         </div>
@@ -210,7 +210,7 @@ export function AdminKeyboxDetailPage() {
               className="btn-interactive inline-flex items-center gap-1.5 rounded-xl bg-slate-900 px-3.5 py-2 text-xs font-semibold text-white hover:bg-slate-800 disabled:opacity-50"
             >
               <Download className="h-3.5 w-3.5" />
-              <span>{isDownloading ? '正在下载…' : '管理员审计下载'}</span>
+              <span>{isDownloading ? '正在下载…' : '下载原文件'}</span>
             </button>
 
             <button
@@ -220,7 +220,7 @@ export function AdminKeyboxDetailPage() {
               className="btn-interactive inline-flex items-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2 text-xs font-semibold text-rose-800 hover:bg-rose-100"
             >
               <Trash2 className="h-3.5 w-3.5" />
-              <span>软删除</span>
+              <span>删除</span>
             </button>
           </div>
         )}
@@ -239,7 +239,7 @@ export function AdminKeyboxDetailPage() {
               <div className="space-y-1">
                 <div className="flex flex-wrap items-center gap-2.5">
                   <span className="rounded bg-slate-900 px-2 py-0.5 font-mono text-xs font-semibold text-white">
-                    Admin Keybox Detail
+                    Admin Keybox 详情
                   </span>
                   <h1 className="break-all font-mono text-base font-bold text-slate-900">
                     {detail.id}
@@ -249,7 +249,7 @@ export function AdminKeyboxDetailPage() {
                 </div>
                 <p className="text-xs text-slate-500">
                   request_id: <code className="font-mono">{detailQuery.data?.requestId}</code> ·
-                  管理详情绝不返回或展示私钥内容
+                  仅展示证书信息
                 </p>
               </div>
 
@@ -263,10 +263,9 @@ export function AdminKeyboxDetailPage() {
             <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-3">
               {/* Visibility control */}
               <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4 text-xs">
-                <span className="font-semibold text-slate-900">1. 可见性控制 (visibility)</span>
+                <span className="font-semibold text-slate-900">可见性</span>
                 <p className="mt-1 text-slate-600">
-                  当前为 <code className="font-mono font-semibold">{detail.visibility}</code>。设为{' '}
-                  <code className="font-mono">hidden</code> 后公开接口与游客下载均返回 404，但管理员仍可查看和下载。
+                  下架后仅管理员可查看和下载。
                 </p>
                 <button
                   type="button"
@@ -281,12 +280,12 @@ export function AdminKeyboxDetailPage() {
                   {detail.visibility === 'public' ? (
                     <>
                       <EyeOff className="h-3.5 w-3.5" />
-                      <span>下架隐藏 (设为 hidden)</span>
+                      <span>下架</span>
                     </>
                   ) : (
                     <>
                       <Eye className="h-3.5 w-3.5" />
-                      <span>恢复公开 (设为 public)</span>
+                      <span>恢复公开</span>
                     </>
                   )}
                 </button>
@@ -295,14 +294,14 @@ export function AdminKeyboxDetailPage() {
               {/* Guest download policy control */}
               <div className="rounded-xl border border-amber-200 bg-amber-50/50 p-4 text-xs">
                 <span className="font-semibold text-amber-950">
-                  2. 单条游客下载策略 (guest_download_policy)
+                  游客下载
                 </span>
                 <p className="mt-1 text-amber-900">
-                  当前全局开关:{' '}
-                  <strong>{detail.guest_download_enabled ? '开启 (true)' : '关闭 (false)'}</strong> ·
-                  单条策略: <strong>{detail.guest_download_policy}</strong> · 最终生效:{' '}
+                  全局：{' '}
+                  <strong>{detail.guest_download_enabled ? '开启' : '关闭'}</strong> ·
+                  策略：<strong>{DOWNLOAD_POLICY_META[detail.guest_download_policy].shortLabel}</strong> · 生效：{' '}
                   <strong data-testid="admin-detail-effective-flag">
-                    {detail.guest_downloadable_effective ? '允许游客下载 (true)' : '禁止游客下载 (false)'}
+                    {detail.guest_downloadable_effective ? '允许下载' : '禁止下载'}
                   </strong>
                 </p>
                 <div className="mt-3 flex flex-wrap gap-1.5">
@@ -331,7 +330,7 @@ export function AdminKeyboxDetailPage() {
               {/* Admin note editor */}
               <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4 text-xs">
                 <div className="flex items-center justify-between">
-                  <span className="font-semibold text-slate-900">3. 管理员备注 (admin_note)</span>
+                  <span className="font-semibold text-slate-900">管理员备注</span>
                   <span className="font-mono text-[11px] text-slate-500">
                     {noteBytes} / 2000 bytes
                   </span>
@@ -340,7 +339,7 @@ export function AdminKeyboxDetailPage() {
                   rows={2}
                   value={noteInput}
                   onChange={(e) => setNoteInput(e.target.value)}
-                  placeholder="记录来源、复核说明或下架原因（最长 2000 字节）"
+                  placeholder="来源或备注，最多 2000 字节"
                   className="mt-2 w-full rounded-lg border border-slate-300 bg-white p-2 text-xs text-slate-900"
                 />
                 <button
@@ -359,7 +358,7 @@ export function AdminKeyboxDetailPage() {
           {/* Current Validation Report */}
           <ValidationReportView
             validation={detail}
-            title="当前生效证书链与校验快照"
+            title="证书链"
             expandAllByDefault
           />
 
@@ -369,12 +368,12 @@ export function AdminKeyboxDetailPage() {
               <div className="flex items-center gap-2">
                 <History className="h-4 w-4 text-indigo-600" />
                 <h2 className="text-base font-semibold text-slate-900">
-                  历史校验运行记录 (GET /api/v1/admin/keyboxes/&#123;id&#125;/validation-runs)
+                  校验历史
                 </h2>
               </div>
               {runsQuery.data && (
                 <span className="text-xs text-slate-500">
-                  共 {runsQuery.data.data.total} 次可复现安全校验快照
+                  共 {runsQuery.data.data.total} 次校验
                 </span>
               )}
             </div>
@@ -385,11 +384,11 @@ export function AdminKeyboxDetailPage() {
                   <table className="w-full border-collapse text-left text-xs">
                     <thead>
                       <tr className="border-b border-slate-200 bg-slate-50 text-slate-600">
-                        <th className="px-3.5 py-2.5 font-semibold">运行 ID (id)</th>
-                        <th className="px-3.5 py-2.5 font-semibold">校验结论 (overall_status)</th>
+                        <th className="px-3.5 py-2.5 font-semibold">记录 ID</th>
+                        <th className="px-3.5 py-2.5 font-semibold">校验结果</th>
                         <th className="px-3.5 py-2.5 font-semibold">信任根版本 / CRL 版本</th>
-                        <th className="px-3.5 py-2.5 font-semibold">运行时间 (created_at)</th>
-                        <th className="px-3.5 py-2.5 text-right font-semibold">快照详情</th>
+                        <th className="px-3.5 py-2.5 font-semibold">校验时间</th>
+                        <th className="px-3.5 py-2.5 text-right font-semibold">详情</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
@@ -414,7 +413,7 @@ export function AdminKeyboxDetailPage() {
                               }
                               className="btn-interactive rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100"
                             >
-                              {selectedRun?.id === run.id ? '收起快照' : '查看当次快照'}
+                              {selectedRun?.id === run.id ? '收起' : '查看详情'}
                             </button>
                           </td>
                         </tr>
@@ -427,7 +426,7 @@ export function AdminKeyboxDetailPage() {
                   <div className="pt-2">
                     <ValidationReportView
                       validation={selectedRun.validation}
-                      title={`历史校验快照详情 (Run ID: ${selectedRun.id} · ${formatDateTime(selectedRun.created_at)})`}
+                      title={`校验记录 · ${formatDateTime(selectedRun.created_at)}`}
                     />
                   </div>
                 )}
@@ -440,7 +439,7 @@ export function AdminKeyboxDetailPage() {
                 />
               </>
             ) : (
-              <p className="text-xs text-slate-500">暂无历史校验运行记录。</p>
+              <p className="text-xs text-slate-500">暂无校验记录。</p>
             )}
           </section>
         </>
@@ -451,14 +450,14 @@ export function AdminKeyboxDetailPage() {
           open
           tone="danger"
           isSubmitting={isMutating}
-          title="确认修改单条 Keybox 游客下载策略"
-          description={`Keybox (${detail.id}) 单条策略将从 "${detail.guest_download_policy}" 变更为 "${pendingAction.nextPolicy}"。`}
+          title="修改下载权限？"
+          description={`Keybox ${detail.id}：${DOWNLOAD_POLICY_META[detail.guest_download_policy].shortLabel} → ${DOWNLOAD_POLICY_META[pendingAction.nextPolicy].shortLabel}。`}
           warningBullets={[
-            '高危风险警示：Keybox 含硬件认证私钥，允许游客下载等于向公网公开私钥！',
-            '一旦私钥被游客下载，后续关闭下载也无法撤回已被复制的私钥副本。',
-            '生效规则：仅当全局开关开启 (true) 且单条策略为 inherit 或 allowed 且条目为 public 时，guest_downloadable_effective 才为 true。',
+            '文件含私钥，开放下载后任何人都可获取。',
+            '已下载的私钥副本无法撤回。',
+            '仅在全局开启、条目公开且未禁止下载时生效。',
           ]}
-          confirmLabel={`确认设为 ${pendingAction.nextPolicy}`}
+          confirmLabel="确认修改"
           onConfirm={() => void handleConfirmPendingAction()}
           onCancel={() => setPendingAction(null)}
         />
@@ -471,15 +470,15 @@ export function AdminKeyboxDetailPage() {
           isSubmitting={isMutating}
           title={
             pendingAction.nextVisibility === 'hidden'
-              ? '确认下架隐藏该 Keybox'
-              : '确认恢复公开该 Keybox'
+              ? '下架 Keybox？'
+              : '恢复公开？'
           }
-          description={`Keybox (${detail.id}) 可见性将变更为 "${pendingAction.nextVisibility}"。`}
+          description={`Keybox ${detail.id}`}
           warningBullets={[
-            '设为 hidden 后公开详情、列表、证书查询与游客下载均返回 404 (40401)。',
-            '设为 public 后将立即对匿名访客展示证书链元数据，并按当前下载策略决定是否允许游客下载。',
+            '下架后，访客无法查看或下载。',
+            '恢复公开后，访客可查看记录；下载仍受当前权限控制。',
           ]}
-          confirmLabel={`确认设为 ${pendingAction.nextVisibility}`}
+          confirmLabel={pendingAction.nextVisibility === 'hidden' ? '确认下架' : '确认恢复'}
           onConfirm={() => void handleConfirmPendingAction()}
           onCancel={() => setPendingAction(null)}
         />
@@ -490,13 +489,13 @@ export function AdminKeyboxDetailPage() {
           open
           tone="danger"
           isSubmitting={isMutating}
-          title="确认软删除该 Keybox"
-          description={`调用 DELETE /api/v1/admin/keyboxes/${detail.id} 执行软删除。`}
+          title="删除 Keybox？"
+          description={`Keybox ${detail.id}`}
           warningBullets={[
-            '删除后该 Keybox 无法恢复，且公开端与管理端常规列表均不再显示。',
-            '文件 SHA-256 与链首证书指纹仍保留在去重表中，重复上传同一文件仍返回 409 (40901)。',
+            '删除后将从列表移除，任何人都无法下载。',
+            '去重记录会保留，相同文件无法再次上传。',
           ]}
-          confirmLabel="确认永久软删除"
+          confirmLabel="确认删除"
           onConfirm={() => void handleConfirmPendingAction()}
           onCancel={() => setPendingAction(null)}
         />

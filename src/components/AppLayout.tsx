@@ -23,7 +23,7 @@ export function AppLayout() {
   const handleLogout = async () => {
     try {
       await logout();
-      toast.success('已安全退出管理员会话');
+      toast.success('已退出登录');
       navigate('/admin/login');
     } catch {
       navigate('/admin/login');
@@ -34,7 +34,7 @@ export function AppLayout() {
     const next = !mockEnabled;
     setApiMockMode(next);
     setMockEnabled(next);
-    toast.info(next ? '已切换至契约 Mock 数据模式' : '已切换至真实后端 API 模式 (/api/v1)');
+    toast.info(next ? '已切换至演示数据' : '已切换至实时数据');
   };
 
   const navLinkClass = ({ isActive }: { isActive: boolean }) =>
@@ -58,7 +58,7 @@ export function AppLayout() {
                   Keybox Attestation
                 </span>
                 <span className="block text-[11px] text-slate-500">
-                  Android 密钥盒收集与证书状态核验平台
+                  证书状态查询
                 </span>
               </div>
             </Link>
@@ -66,15 +66,15 @@ export function AppLayout() {
             <nav className="flex flex-wrap items-center gap-1" aria-label="主导航">
               <NavLink to="/" end className={navLinkClass}>
                 <Database className="h-3.5 w-3.5" />
-                <span>公开列表</span>
+                <span>Keybox 列表</span>
               </NavLink>
               <NavLink to="/upload" className={navLinkClass}>
                 <Upload className="h-3.5 w-3.5" />
-                <span>上传与预检</span>
+                <span>上传</span>
               </NavLink>
               <NavLink to="/certificates" className={navLinkClass}>
                 <Search className="h-3.5 w-3.5" />
-                <span>证书状态查询</span>
+                <span>证书查询</span>
               </NavLink>
             </nav>
           </div>
@@ -84,9 +84,9 @@ export function AppLayout() {
               type="button"
               onClick={handleToggleMockMode}
               className="btn-interactive rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-medium text-slate-600 hover:bg-slate-100"
-              title="切换开发期契约一致 Mock 数据或真实后端同源代理"
+              title="切换演示与实时数据"
             >
-              数据源：{mockEnabled ? '契约 Mock' : 'Live API'}
+              数据源：{mockEnabled ? '演示数据' : '实时数据'}
             </button>
 
             <div className="h-4 w-px bg-slate-200" />
@@ -115,7 +115,7 @@ export function AppLayout() {
                   className="btn-interactive inline-flex items-center gap-1 rounded bg-white px-2 py-0.5 text-[11px] font-medium text-slate-700 hover:bg-rose-50 hover:text-rose-700"
                 >
                   <LogOut className="h-3 w-3" />
-                  <span>登出</span>
+                  <span>退出</span>
                 </button>
               </div>
             ) : (
@@ -135,12 +135,10 @@ export function AppLayout() {
       <footer className="border-t border-slate-200 bg-white py-4 text-xs text-slate-500">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-2 px-4 sm:flex-row">
           <span>
-            严格遵循 <code className="font-mono">api/openapi.json</code> (OpenAPI 3.0.3) 与{' '}
-            <code className="font-mono">docs/api.md</code> 契约
+            Keybox · 证书状态查询
           </span>
           <span>
-            零私钥暴露 · 响应头强制 <code className="font-mono">Cache-Control: no-store</code> ·
-            HttpOnly 会话 + CSRF 保护
+            下载权限由管理员控制
           </span>
         </div>
       </footer>

@@ -66,14 +66,10 @@ export function AdminAuditLogsPage() {
         <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
           <div>
             <h1 className="text-xl font-bold tracking-tight text-slate-900">
-              不可变审计日志与下载流水查询
+              审计日志
             </h1>
             <p className="mt-1 text-xs text-slate-600">
-              契约提供两个只读追加式日志端点：操作审计日志{' '}
-              <code className="font-mono">GET /api/v1/admin/audit-logs</code>（支持按{' '}
-              <code className="font-mono">action</code> 筛选策略变更、管理员下载等动作）与下载专项流水{' '}
-              <code className="font-mono">GET /api/v1/admin/download-logs</code>（含{' '}
-              <code className="font-mono">actor_type: "guest" | "admin"</code>）。应用层与数据库运行账号均无任何修改或删除日志的权限。
+              查看操作与下载记录。日志只读。
             </p>
           </div>
           <button
@@ -102,7 +98,7 @@ export function AdminAuditLogsPage() {
               }`}
             >
               <FileText className="h-3.5 w-3.5" />
-              <span>管理与系统审计日志 (AuditLog)</span>
+              <span>操作日志</span>
             </button>
             <button
               type="button"
@@ -115,7 +111,7 @@ export function AdminAuditLogsPage() {
               }`}
             >
               <Download className="h-3.5 w-3.5" />
-              <span>游客与管理员下载日志 (DownloadLog)</span>
+              <span>下载日志</span>
             </button>
           </div>
 
@@ -123,7 +119,7 @@ export function AdminAuditLogsPage() {
             <div className="flex flex-wrap items-center gap-2">
               <span className="inline-flex items-center gap-1 text-xs font-semibold text-slate-700">
                 <Filter className="h-3.5 w-3.5 text-slate-500" />
-                <span>按动作筛选 (action)：</span>
+                <span>操作类型</span>
               </span>
               <select
                 aria-label="按审计动作筛选"
@@ -132,7 +128,7 @@ export function AdminAuditLogsPage() {
                 onChange={(e) => updateParams({ action: e.target.value, page: 1 })}
                 className="rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs text-slate-900"
               >
-                <option value="">全部动作 (All actions)</option>
+                <option value="">全部操作</option>
                 {AUDIT_ACTION_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>
                     {opt.label}
@@ -154,13 +150,13 @@ export function AdminAuditLogsPage() {
               <table className="w-full border-collapse text-left text-xs">
                 <thead>
                   <tr className="border-b border-slate-200 bg-slate-50/80 text-slate-600">
-                    <th className="px-4 py-3 font-semibold">时间 (created_at)</th>
-                    <th className="px-4 py-3 font-semibold">操作人 (admin_id)</th>
-                    <th className="px-4 py-3 font-semibold">动作 (action)</th>
-                    <th className="px-4 py-3 font-semibold">目标 (target_type / target_id)</th>
-                    <th className="px-4 py-3 font-semibold">IP / UA HMAC 摘要</th>
-                    <th className="px-4 py-3 font-semibold">结果 (result)</th>
-                    <th className="px-4 py-3 font-semibold">追踪 ID (request_id)</th>
+                    <th className="px-4 py-3 font-semibold">时间</th>
+                    <th className="px-4 py-3 font-semibold">操作人</th>
+                    <th className="px-4 py-3 font-semibold">操作</th>
+                    <th className="px-4 py-3 font-semibold">目标</th>
+                    <th className="px-4 py-3 font-semibold">IP / 设备摘要</th>
+                    <th className="px-4 py-3 font-semibold">结果</th>
+                    <th className="px-4 py-3 font-semibold">请求 ID</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -168,7 +164,7 @@ export function AdminAuditLogsPage() {
                     <tr key={log.id} className="hover:bg-slate-50/80">
                       <td className="px-4 py-3 text-slate-700">{formatDateTime(log.created_at)}</td>
                       <td className="px-4 py-3 font-mono text-slate-800">
-                        {log.admin_id ? shortHex(log.admin_id, 8, 6) : '系统/未认证 (null)'}
+                        {log.admin_id ? shortHex(log.admin_id, 8, 6) : '系统 / 未登录'}
                       </td>
                       <td className="px-4 py-3">
                         <code className="rounded bg-slate-100 px-2 py-0.5 font-mono font-semibold text-slate-900">
@@ -233,13 +229,13 @@ export function AdminAuditLogsPage() {
               <table className="w-full border-collapse text-left text-xs">
                 <thead>
                   <tr className="border-b border-slate-200 bg-slate-50/80 text-slate-600">
-                    <th className="px-4 py-3 font-semibold">时间 (created_at)</th>
-                    <th className="px-4 py-3 font-semibold">调用方类型 (actor_type)</th>
-                    <th className="px-4 py-3 font-semibold">管理员 ID (admin_id)</th>
-                    <th className="px-4 py-3 font-semibold">目标 Keybox (keybox_id)</th>
-                    <th className="px-4 py-3 font-semibold">IP / UA HMAC 摘要</th>
-                    <th className="px-4 py-3 font-semibold">下载结果 (result)</th>
-                    <th className="px-4 py-3 font-semibold">追踪 ID (request_id)</th>
+                    <th className="px-4 py-3 font-semibold">时间</th>
+                    <th className="px-4 py-3 font-semibold">下载者</th>
+                    <th className="px-4 py-3 font-semibold">管理员 ID</th>
+                    <th className="px-4 py-3 font-semibold">Keybox ID</th>
+                    <th className="px-4 py-3 font-semibold">IP / 设备摘要</th>
+                    <th className="px-4 py-3 font-semibold">结果</th>
+                    <th className="px-4 py-3 font-semibold">请求 ID</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -254,7 +250,7 @@ export function AdminAuditLogsPage() {
                               : 'bg-indigo-100 text-indigo-900'
                           }`}
                         >
-                          {dl.actor_type === 'guest' ? '游客 (guest)' : '管理员 (admin)'}
+                          {dl.actor_type === 'guest' ? '游客' : '管理员'}
                         </span>
                       </td>
                       <td className="px-4 py-3 font-mono text-slate-700">

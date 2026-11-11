@@ -107,13 +107,10 @@ export function CertificateSearchPage() {
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-2xs">
         <div className="space-y-1.5">
           <h1 className="text-xl font-bold tracking-tight text-slate-900">
-            X.509 证书状态与吊销查询
+            证书查询
           </h1>
           <p className="text-xs leading-relaxed text-slate-600">
-            调用 <code className="font-mono">GET /api/v1/certificates/status</code>，支持按
-            <strong>证书序列号 (serial_number)</strong> 或{' '}
-            <strong>SHA-256 指纹 (fingerprint_sha256)</strong> 二选一查询。序列号统一按小写十六进制处理（自动剥离可选{' '}
-            <code className="font-mono">0x</code>、冒号及前导零）；共享根或中间证书可能跨多个公开 Keybox 出现，接口返回完整匹配列表。
+            输入证书序列号或 SHA-256 指纹，查询吊销状态及关联 Keybox。
           </p>
         </div>
 
@@ -132,7 +129,7 @@ export function CertificateSearchPage() {
                   : 'border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100'
               }`}
             >
-              按证书序列号查询 (serial_number)
+              证书序列号
             </button>
             <button
               type="button"
@@ -147,7 +144,7 @@ export function CertificateSearchPage() {
                   : 'border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100'
               }`}
             >
-              按 SHA-256 指纹查询 (fingerprint_sha256)
+              SHA-256 指纹
             </button>
           </div>
 
@@ -161,8 +158,8 @@ export function CertificateSearchPage() {
               }}
               placeholder={
                 selectorType === 'serial'
-                  ? '输入十六进制序列号，例如 1a8f09c4e2b17d33 或 0xbadc0ffee0ddf00d'
-                  : '输入 64 位 SHA-256 十六进制指纹（支持带冒号格式）'
+                  ? '十六进制序列号，如 1a8f09c4e2b17d33'
+                  : '64 位十六进制指纹，可带冒号'
               }
               aria-label="证书查询输入"
               data-testid="cert-search-input"
@@ -194,34 +191,34 @@ export function CertificateSearchPage() {
 
           {/* Quick examples */}
           <div className="flex flex-wrap items-center gap-2 pt-1 text-xs text-slate-500">
-            <span>快速示例：</span>
+            <span>试用示例</span>
             <button
               type="button"
               onClick={() => applyQuickFill('serial', '1a8f09c4e2b17d33')}
               className="btn-interactive rounded border border-slate-200 bg-slate-50 px-2 py-0.5 font-mono text-[11px] text-slate-700 hover:bg-slate-100"
             >
-              有效叶证书序列号 (1a8f09c4e2b17d33)
+              有效证书
             </button>
             <button
               type="button"
               onClick={() => applyQuickFill('serial', 'badc0ffee0ddf00d')}
               className="btn-interactive rounded border border-rose-200 bg-rose-50 px-2 py-0.5 font-mono text-[11px] text-rose-800 hover:bg-rose-100"
             >
-              已吊销中间 CA 序列号 (badc0ffee0ddf00d)
+              已吊销证书
             </button>
             <button
               type="button"
               onClick={() => applyQuickFill('serial', '99ef01a2b3c4d5')}
               className="btn-interactive rounded border border-slate-200 bg-slate-50 px-2 py-0.5 font-mono text-[11px] text-slate-700 hover:bg-slate-100"
             >
-              跨多条链共享 Google 根序列号 (99ef01a2b3c4d5)
+              共享根证书
             </button>
             <button
               type="button"
               onClick={() => applyQuickFill('serial', 'deadbeef99999999')}
               className="btn-interactive rounded border border-slate-200 bg-slate-50 px-2 py-0.5 font-mono text-[11px] text-slate-700 hover:bg-slate-100"
             >
-              站内不存在序列号 (deadbeef99999999)
+              未收录证书
             </button>
           </div>
         </form>
@@ -244,24 +241,19 @@ export function CertificateSearchPage() {
           >
             <div className="flex flex-col justify-between gap-3 border-b border-slate-100 pb-3.5 sm:flex-row sm:items-center">
               <div className="flex flex-wrap items-center gap-2">
-                <h2 className="text-sm font-bold text-slate-900">查询层 CRL 与状态摘要 (query)</h2>
+                <h2 className="text-sm font-bold text-slate-900">吊销状态</h2>
                 <CrlStatusBadge crlStatus={resultPage.query.crl_status} />
                 <StatusBadge status={resultPage.query.certificate_status} size="sm" showCode />
               </div>
               <span className="text-xs text-slate-500">
-                检查时间 (status_checked_at)：{formatDateTime(resultPage.status_checked_at)}
+                查询时间：{formatDateTime(resultPage.status_checked_at)}
               </span>
             </div>
 
             <div className="mt-3 flex items-start gap-2 rounded-xl bg-amber-50/80 p-3 text-xs text-amber-900">
               <Info className="mt-0.5 h-4 w-4 shrink-0 text-amber-700" />
               <span>
-                <strong>契约安全提示（docs/api.md）：</strong>按序列号查询可直接检索 CRL 状态表，但{' '}
-                <code className="font-mono">query</code> 层仅能断定{' '}
-                <code className="font-mono">revoked</code>，未命中吊销时{' '}
-                <code className="font-mono">query.certificate_status</code> 固定为{' '}
-                <code className="font-mono">indeterminate</code>
-                ——绝不能把“未查到撤销”直接当成证书有效；完整有效性必须结合下方站内匹配记录的证书链上下文判定。
+                未发现吊销不代表证书有效，请结合下方完整校验结果判断。
               </span>
             </div>
           </section>
@@ -274,13 +266,10 @@ export function CertificateSearchPage() {
             >
               <FileSearch className="mx-auto h-8 w-8 text-slate-400" />
               <h3 className="mt-3 text-sm font-semibold text-slate-900">
-                未找到站内公开 Keybox 匹配的证书记录 (items = [], total = 0)
+                未找到匹配证书
               </h3>
               <p className="mx-auto mt-1 max-w-xl text-xs text-slate-500">
-                站内公开未删除的 Keybox 中不包含该证书。注意：即使上方 CRL 状态显示为{' '}
-                <code className="font-mono">{resultPage.query.crl_status}</code>
-                ，缺少完整证书链、签名与信任根上下文时，状态仍为{' '}
-                <code className="font-mono">{resultPage.query.certificate_status}</code>（不确定/不可判定为有效）。
+                缺少完整证书链，暂无法确认有效性。
               </p>
             </div>
           ) : (
@@ -312,33 +301,33 @@ export function CertificateSearchPage() {
 
                     <div className="mt-3.5 grid grid-cols-1 gap-3 text-xs sm:grid-cols-2 lg:grid-cols-3">
                       <div>
-                        <span className="text-slate-500">所属 Keybox ID (keybox_id)</span>
+                        <span className="text-slate-500">Keybox ID</span>
                         <p className="mt-0.5 break-all font-mono font-semibold text-slate-900">
                           {match.keybox_id}
                         </p>
                       </div>
                       <div>
-                        <span className="text-slate-500">序列号 (serial_number)</span>
+                        <span className="text-slate-500">序列号</span>
                         <p className="mt-0.5 break-all font-mono text-slate-900">
                           {cert.serial_number}
                         </p>
                       </div>
                       <div>
-                        <span className="text-slate-500">SHA-256 指纹 (fingerprint_sha256)</span>
+                        <span className="text-slate-500">SHA-256 指纹</span>
                         <p className="mt-0.5 break-all font-mono text-slate-900">
                           {cert.fingerprint_sha256}
                         </p>
                       </div>
                       <div>
-                        <span className="text-slate-500">主体 DN (subject)</span>
+                        <span className="text-slate-500">主体</span>
                         <p className="mt-0.5 break-all font-mono text-slate-800">{cert.subject}</p>
                       </div>
                       <div>
-                        <span className="text-slate-500">颁发者 DN (issuer)</span>
+                        <span className="text-slate-500">颁发者</span>
                         <p className="mt-0.5 break-all font-mono text-slate-800">{cert.issuer}</p>
                       </div>
                       <div>
-                        <span className="text-slate-500">有效期 (not_before ~ not_after)</span>
+                        <span className="text-slate-500">有效期</span>
                         <p className="mt-0.5 font-mono text-slate-800">
                           {formatDateTime(cert.not_before)} 至 {formatDateTime(cert.not_after)}
                         </p>
@@ -358,7 +347,7 @@ export function CertificateSearchPage() {
                         ) : (
                           <XCircle className="h-3.5 w-3.5" />
                         )}
-                        <span>根信任 (root_trusted): {String(cert.root_trusted)}</span>
+                        <span>信任根：{cert.root_trusted ? '可信' : '不可信'}</span>
                       </span>
 
                       <span
@@ -373,7 +362,7 @@ export function CertificateSearchPage() {
                         ) : (
                           <XCircle className="h-3.5 w-3.5" />
                         )}
-                        <span>链签名有效 (chain_signature_valid): {String(cert.chain_signature_valid)}</span>
+                        <span>链签名：{cert.chain_signature_valid ? '通过' : '未通过'}</span>
                       </span>
 
                       <span
@@ -388,7 +377,7 @@ export function CertificateSearchPage() {
                         ) : (
                           <AlertTriangle className="h-3.5 w-3.5" />
                         )}
-                        <span>在有效期内 (time_valid): {String(cert.time_valid)}</span>
+                        <span>有效期：{cert.time_valid ? '通过' : '未通过'}</span>
                       </span>
                     </div>
                   </div>

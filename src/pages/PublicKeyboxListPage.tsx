@@ -73,15 +73,13 @@ export function PublicKeyboxListPage() {
           <div className="space-y-1.5">
             <div className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
               <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
-              <span>公开 Keybox 收集摘要 · 严禁返回或展示任何私钥及原始 XML</span>
+              <span>Android Keybox</span>
             </div>
             <h1 className="text-xl font-bold tracking-tight text-slate-900">
-              已收集 Keybox 公开状态列表
+              Keybox 列表
             </h1>
             <p className="max-w-3xl text-xs leading-relaxed text-slate-600">
-              展示全部公开且未软删除的 Keybox 安全投影摘要。列表状态按当前有效期、信任根版本与 CRL
-              可用性实时投影计算（当 CRL 不可用或版本变化时历史 valid 会降级为{' '}
-              <code className="font-mono text-amber-800">indeterminate</code>）。
+              查看已收录的 Keybox 与证书状态。
             </p>
           </div>
 
@@ -100,7 +98,7 @@ export function PublicKeyboxListPage() {
               className="btn-interactive inline-flex items-center gap-1.5 rounded-xl bg-slate-900 px-4 py-2 text-xs font-semibold text-white shadow-xs hover:bg-slate-800"
             >
               <Upload className="h-3.5 w-3.5" />
-              <span>上传并校验 Keybox</span>
+              <span>上传 Keybox</span>
             </Link>
           </div>
         </div>
@@ -111,7 +109,7 @@ export function PublicKeyboxListPage() {
         <div className="flex flex-wrap items-center gap-2">
           <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-700">
             <Filter className="h-3.5 w-3.5 text-slate-500" />
-            <span>按总体投影状态筛选 (status)：</span>
+            <span>状态</span>
           </span>
           <button
             type="button"
@@ -137,7 +135,7 @@ export function PublicKeyboxListPage() {
                     : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                 }`}
               >
-                {STATUS_META[st].shortLabel} ({st})
+                {STATUS_META[st].shortLabel}
               </button>
             );
           })}
@@ -154,11 +152,7 @@ export function PublicKeyboxListPage() {
       <div className="flex items-start gap-2 rounded-xl border border-slate-200/80 bg-slate-100/70 px-3.5 py-2.5 text-xs text-slate-600">
         <Info className="mt-0.5 h-4 w-4 shrink-0 text-slate-500" />
         <span>
-          契约说明：根据 <code className="font-mono">api/openapi.json#/components/schemas/KeyboxSummary</code>，列表摘要返回{' '}
-          <code className="font-mono">id</code>、<code className="font-mono">file_sha256</code>、
-          <code className="font-mono">overall_status</code>、<code className="font-mono">last_validation_status</code>、
-          <code className="font-mono">created_at</code>、<code className="font-mono">last_validated_at</code> 与{' '}
-          <code className="font-mono">guest_downloadable_effective</code>；完整证书链列表与链数请点击条目进入详情页查看。
+          选择记录查看证书链详情。
         </span>
       </div>
 
@@ -183,11 +177,11 @@ export function PublicKeyboxListPage() {
           data-testid="keybox-list-empty"
         >
           <Database className="mx-auto h-8 w-8 text-slate-400" />
-          <h2 className="mt-3 text-sm font-semibold text-slate-900">暂无匹配的公开 Keybox 记录</h2>
+          <h2 className="mt-3 text-sm font-semibold text-slate-900">暂无匹配记录</h2>
           <p className="mt-1 text-xs text-slate-500">
             {statusFilter
-              ? `当前筛选状态 (${statusFilter}) 下没有公开记录，您可以切换筛选条件或上传新的 Keybox。`
-              : '尚未收录任何公开 Keybox，可前往上传页进行预检与入库。'}
+              ? '试试其他状态，或上传新的 Keybox。'
+              : '还没有 Keybox，上传第一份吧。'}
           </p>
           {statusFilter && (
             <button
@@ -195,7 +189,7 @@ export function PublicKeyboxListPage() {
               onClick={() => updateQuery({ status: '', page: 1 })}
               className="btn-interactive mt-4 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100"
             >
-              清除状态筛选
+              清除筛选
             </button>
           )}
         </div>
@@ -206,11 +200,11 @@ export function PublicKeyboxListPage() {
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50/80 text-slate-600">
                   <th className="px-4 py-3 font-semibold">Keybox ID / 文件 SHA-256</th>
-                  <th className="px-4 py-3 font-semibold">当前总体状态 (overall_status)</th>
-                  <th className="px-4 py-3 font-semibold">上次校验结论 (last_validation_status)</th>
-                  <th className="px-4 py-3 font-semibold">上传时间 / 最后校验时间</th>
-                  <th className="px-4 py-3 font-semibold">游客下载生效状态</th>
-                  <th className="px-4 py-3 text-right font-semibold">证书链与详情</th>
+                  <th className="px-4 py-3 font-semibold">当前状态</th>
+                  <th className="px-4 py-3 font-semibold">上次校验</th>
+                  <th className="px-4 py-3 font-semibold">上传 / 校验时间</th>
+                  <th className="px-4 py-3 font-semibold">游客下载</th>
+                  <th className="px-4 py-3 text-right font-semibold">详情</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -251,7 +245,7 @@ export function PublicKeyboxListPage() {
                         to={`/keyboxes/${item.id}`}
                         className="btn-interactive inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
                       >
-                        <span>查看证书链与状态</span>
+                        <span>查看详情</span>
                         <ArrowRight className="h-3.5 w-3.5" />
                       </Link>
                     </td>

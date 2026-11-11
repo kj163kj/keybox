@@ -14,11 +14,11 @@ const loginSchema = z.object({
     .string()
     .trim()
     .min(1, '请输入管理员用户名')
-    .max(128, '用户名最长 128 字符 (openapi.json LoginInput)'),
+    .max(128, '用户名最多 128 个字符'),
   password: z
     .string()
     .min(1, '请输入管理员密码')
-    .max(72, '密码最长 72 字节 (bcrypt 上限，openapi.json LoginInput)'),
+    .max(72, '密码最多 72 字节'),
 });
 
 type LoginFormValues = z.infer<typeof loginSchema>;
@@ -49,7 +49,7 @@ export function AdminLoginPage() {
     setSubmitError(null);
     try {
       const res = await login(values);
-      toast.success(`管理员 ${res.admin.username} 登录成功`);
+      toast.success(`已登录：${res.admin.username}`);
       navigate(fromPath, { replace: true });
     } catch (err) {
       setSubmitError(err);
@@ -64,9 +64,9 @@ export function AdminLoginPage() {
             <Lock className="h-5 w-5 text-emerald-400" />
           </div>
           <div>
-            <h1 className="text-lg font-bold text-slate-900">管理员安全登录</h1>
+            <h1 className="text-lg font-bold text-slate-900">管理员登录</h1>
             <p className="text-xs text-slate-500">
-              POST /api/v1/admin/login · HttpOnly 会话 Cookie
+              登录后管理 Keybox 与下载权限
             </p>
           </div>
         </div>
@@ -74,13 +74,10 @@ export function AdminLoginPage() {
         <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
           <div className="flex items-center gap-1.5 font-semibold text-slate-800">
             <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
-            <span>认证与存储安全规范：</span>
+            <span>登录提示</span>
           </div>
           <p className="mt-1 leading-relaxed">
-            登录成功后由服务端下发 <code className="font-mono">__Host-keybox_session</code>{' '}
-            (<code className="font-mono">Secure; HttpOnly; SameSite=Strict</code>，8 小时绝对有效期)。
-            前端<strong>绝不在 localStorage 或 sessionStorage 中保存任何令牌</strong>，仅在内存中维护当前会话的{' '}
-            <code className="font-mono">X-CSRF-Token</code>。
+            会话有效期为 8 小时，使用完毕请退出登录。
           </p>
         </div>
 
@@ -101,7 +98,7 @@ export function AdminLoginPage() {
               htmlFor="admin-username"
               className="block text-xs font-semibold text-slate-700"
             >
-              管理员用户名 (username)
+              用户名
             </label>
             <input
               id="admin-username"
@@ -127,7 +124,7 @@ export function AdminLoginPage() {
               htmlFor="admin-password"
               className="block text-xs font-semibold text-slate-700"
             >
-              管理员密码 (password)
+              密码
             </label>
             <input
               id="admin-password"
@@ -135,7 +132,7 @@ export function AdminLoginPage() {
               autoComplete="current-password"
               data-testid="login-password-input"
               {...register('password')}
-              placeholder="输入管理员密码（最长 72 字节）"
+              placeholder="输入密码"
               className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-xs text-slate-900 focus:border-slate-900 focus:outline-none"
             />
             {errors.password && (
@@ -152,7 +149,7 @@ export function AdminLoginPage() {
             className="btn-interactive flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-xs font-semibold text-white shadow-xs hover:bg-slate-800 disabled:opacity-50"
           >
             <KeyRound className="h-4 w-4" />
-            <span>{isSubmitting ? '正在验证凭据…' : '登录管理后台'}</span>
+            <span>{isSubmitting ? '登录中…' : '登录'}</span>
           </button>
         </form>
 
@@ -160,7 +157,7 @@ export function AdminLoginPage() {
           <div className="mt-5 border-t border-slate-100 pt-4 text-xs">
             <div className="flex items-center gap-1.5 font-semibold text-slate-700">
               <Sparkles className="h-3.5 w-3.5 text-indigo-600" />
-              <span>Mock 模式快速填充测试：</span>
+              <span>演示账号</span>
             </div>
             <div className="mt-2 flex flex-wrap gap-2">
               <button
@@ -171,7 +168,7 @@ export function AdminLoginPage() {
                 }}
                 className="btn-interactive rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1 font-medium text-emerald-900 hover:bg-emerald-100"
               >
-                填充有效管理员凭据
+                填入演示账号
               </button>
               <button
                 type="button"
@@ -181,7 +178,7 @@ export function AdminLoginPage() {
                 }}
                 className="btn-interactive rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1 font-medium text-rose-900 hover:bg-rose-100"
               >
-                模拟 401 凭据错误
+                密码错误
               </button>
               <button
                 type="button"
@@ -191,7 +188,7 @@ export function AdminLoginPage() {
                 }}
                 className="btn-interactive rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1 font-medium text-amber-900 hover:bg-amber-100"
               >
-                模拟 429 登录限流
+                登录限流
               </button>
             </div>
           </div>

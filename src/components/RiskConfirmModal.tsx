@@ -19,7 +19,7 @@ export function RiskConfirmModal({
   description,
   warningBullets,
   confirmLabel,
-  cancelLabel = '取消操作',
+  cancelLabel = '取消',
   tone = 'danger',
   isSubmitting = false,
   onConfirm,
@@ -55,7 +55,7 @@ export function RiskConfirmModal({
               <h3 id="risk-modal-title" className="text-base font-semibold text-slate-900">
                 {title}
               </h3>
-              <p className="mt-0.5 text-xs text-slate-500">高风险操作二次确认 · 将写入不可变审计日志</p>
+              <p className="mt-0.5 text-xs text-slate-500">操作将记入审计日志</p>
             </div>
           </div>
           <button
@@ -78,7 +78,7 @@ export function RiskConfirmModal({
               : 'border-amber-200 bg-amber-50/90 text-amber-900'
           }`}
         >
-          <p className="font-semibold">安全风险与业务影响告知：</p>
+          <p className="font-semibold">请确认</p>
           <ul className="mt-2 list-disc space-y-1.5 pl-4">
             {warningBullets.map((item, idx) => (
               <li key={idx}>{item}</li>
