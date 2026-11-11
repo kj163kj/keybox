@@ -56,7 +56,7 @@ func run(log *slog.Logger) error {
 	case "init-admin":
 		username, password := strings.TrimSpace(config.Secret("KEYBOX_ADMIN_USERNAME")), config.Secret("KEYBOX_ADMIN_PASSWORD")
 		if !security.AdminCredentialsValid(username, password) {
-			return errors.New("admin requires username and 16-72 byte password")
+			return errors.New("admin requires username and 8-72 byte password")
 		}
 		hash, err := bcrypt.GenerateFromPassword([]byte(password), 12)
 		if err != nil {

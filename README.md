@@ -34,7 +34,7 @@ python scripts/generate_openapi.py --check
 3. 启动 API；执行 `pnpm install --frozen-lockfile && pnpm build`，将生产 `dist/` 作为 HTTPS 站点的静态目录，
    同源代理 `/api/`。`deploy/nginx.conf.example` 含页面路由回退配置。
 4. 访问 `/admin/login`，未初始化时会自动进入 `/admin/setup`。输入令牌，自行设置用户名、
-   密码及确认密码；密码须为 **16–72 UTF-8 字节**。创建后使用该账号正常登录。
+   密码及确认密码；密码须为 **8–72 UTF-8 字节**。创建后使用该账号正常登录。
 5. 完成后从所有 API 实例移除初始化令牌并重启。数据库会永久记录初始化完成，
    即使保留令牌、账号停用或账号被外部删除，也不会自动重开入口。
 

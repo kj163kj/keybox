@@ -174,7 +174,7 @@ export interface AdminSetupInput {
   setup_token: string;
   /** Trimmed username, 1-128 UTF-8 bytes; no control characters. */
   username: string;
-  /** 16-72 UTF-8 bytes, not characters. Never trimmed or truncated. */
+  /** 8-72 UTF-8 bytes, not characters. Never trimmed or truncated. */
   password: string;
 }
 

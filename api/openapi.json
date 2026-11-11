@@ -3336,7 +3336,7 @@
             "format": "password",
             "writeOnly": true,
             "maxLength": 72,
-            "description": "16-72 UTF-8 bytes, not characters. Never trimmed or truncated."
+            "description": "8-72 UTF-8 bytes, not characters. Never trimmed or truncated."
           }
         },
         "required": [

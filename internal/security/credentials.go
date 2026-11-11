@@ -11,7 +11,7 @@ import (
 func AdminCredentialsValid(username, password string) bool {
 	if !utf8.ValidString(username) || !utf8.ValidString(password) ||
 		username == "" || username != strings.TrimSpace(username) || len(username) > 128 ||
-		len(password) < 16 || len(password) > 72 {
+		len(password) < 8 || len(password) > 72 {
 		return false
 	}
 	for _, ch := range username {

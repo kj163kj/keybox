@@ -15,8 +15,8 @@ const setupSchema = z.object({
   username: adminUsernameSchema,
   password: z.string().refine((value) => {
     const bytes = utf8ByteLength(value);
-    return bytes >= 16 && bytes <= 72;
-  }, '密码须为 16–72 字节'),
+    return bytes >= 8 && bytes <= 72;
+  }, '密码须为 8–72 字节'),
   confirm_password: z.string().min(1, '请再次输入密码'),
 }).refine((values) => values.password === values.confirm_password, {
   path: ['confirm_password'],
@@ -28,7 +28,7 @@ type SetupValues = z.infer<typeof setupSchema>;
 const fields = [
   { name: 'setup_token', label: '初始化令牌', type: 'password', autoComplete: 'off', placeholder: '部署时配置的令牌' },
   { name: 'username', label: '用户名', type: 'text', autoComplete: 'username', placeholder: '设置管理员账号' },
-  { name: 'password', label: '密码', type: 'password', autoComplete: 'new-password', placeholder: '16–72 字节' },
+  { name: 'password', label: '密码', type: 'password', autoComplete: 'new-password', placeholder: '8–72 字节' },
   { name: 'confirm_password', label: '确认密码', type: 'password', autoComplete: 'new-password', placeholder: '再次输入密码' },
 ] as const;
 

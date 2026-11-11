@@ -12,11 +12,13 @@ func TestAdminCredentialByteBoundaries(t *testing.T) {
 		want                     bool
 	}{
 		{"normal", "operator", password, true},
-		{"lower password boundary", "operator", strings.Repeat("a", 16), true},
+		{"lower password boundary", "operator", strings.Repeat("a", 8), true},
+		{"multibyte lower password boundary", "operator", "密钥ab", true},
+		{"multibyte short password", "operator", "密钥a", false},
 		{"upper password boundary", "operator", strings.Repeat("a", 72), true},
 		{"multibyte password valid", "operator", strings.Repeat("密", 24), true},
 		{"multibyte password too long", "operator", strings.Repeat("密", 25), false},
-		{"short password", "operator", strings.Repeat("a", 15), false},
+		{"short password", "operator", strings.Repeat("a", 7), false},
 		{"long password", "operator", strings.Repeat("a", 73), false},
 		{"password spaces preserved", "operator", " " + password + " ", true},
 		{"empty username", "", password, false},

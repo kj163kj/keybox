@@ -32,7 +32,7 @@ function renderSetup(path = '/admin/setup') {
 async function fillForm(user: ReturnType<typeof userEvent.setup>, confirmMatches = true) {
   // Random per test; never a deployable default.
   const token = crypto.randomUUID();
-  const password = crypto.randomUUID();
+  const password = crypto.randomUUID().slice(0, 8);
   await user.type(await screen.findByLabelText('初始化令牌'), token);
   await user.type(screen.getByLabelText('用户名'), 'operator');
   await user.type(screen.getByLabelText('密码', { exact: true }), password);
@@ -77,7 +77,7 @@ describe('First administrator Web setup', () => {
     expect(await screen.findByTestId('admin-setup-form')).toBeInTheDocument();
   });
 
-  it('prevents mismatched passwords then creates the account and clears secrets before login', async () => {
+  it('creates an account with eight bytes after confirming the password, then clears secrets before login', async () => {
     const user = userEvent.setup();
     const status = vi.spyOn(apiClient, 'adminSetupStatus').mockResolvedValue(reply(fresh));
     const create = vi.spyOn(apiClient, 'adminSetup').mockImplementation(async (input) => {
@@ -119,7 +119,7 @@ describe('First administrator Web setup', () => {
     await user.type(password, tooLong);
     await user.type(confirm, tooLong);
     await user.click(screen.getByRole('button', { name: '创建管理员' }));
-    expect(await screen.findByText('密码须为 16–72 字节')).toBeInTheDocument();
+    expect(await screen.findByText('密码须为 8–72 字节')).toBeInTheDocument();
     expect(create).not.toHaveBeenCalled();
     const valid = '密'.repeat(24);
     await user.clear(password);
@@ -130,6 +130,34 @@ describe('First administrator Web setup', () => {
     await waitFor(() => expect(create).toHaveBeenCalledTimes(1));
     expect(screen.getByRole('button', { name: '创建中…' })).toBeDisabled();
     expect(password).toBeDisabled();
+  });
+
+  it.each([
+    ['ASCII', 'a'.repeat(7), 'a'.repeat(8)],
+    ['UTF-8', '密钥a', '密钥ab'],
+  ])('rejects seven bytes and accepts eight bytes for %s passwords', async (_label, shortPassword, validPassword) => {
+    const user = userEvent.setup();
+    vi.spyOn(apiClient, 'adminSetupStatus').mockResolvedValue(reply(fresh));
+    const create = vi.spyOn(apiClient, 'adminSetup').mockReturnValue(new Promise(() => {}));
+    renderSetup();
+    await fillForm(user);
+    const password = screen.getByLabelText('密码', { exact: true });
+    const confirm = screen.getByLabelText('确认密码');
+    expect(utf8ByteLength(shortPassword)).toBe(7);
+    expect(utf8ByteLength(validPassword)).toBe(8);
+    await user.clear(password);
+    await user.clear(confirm);
+    await user.type(password, shortPassword);
+    await user.type(confirm, shortPassword);
+    await user.click(screen.getByRole('button', { name: '创建管理员' }));
+    expect(await screen.findByText('密码须为 8–72 字节')).toBeInTheDocument();
+    expect(create).not.toHaveBeenCalled();
+    await user.clear(password);
+    await user.clear(confirm);
+    await user.type(password, validPassword);
+    await user.type(confirm, validPassword);
+    await user.click(screen.getByRole('button', { name: '创建管理员' }));
+    await waitFor(() => expect(create).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ password: validPassword })));
   });
 
   it('keeps the form on an invalid token and resolves a concurrent initialization', async () => {

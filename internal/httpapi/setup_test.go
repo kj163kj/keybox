@@ -53,6 +53,8 @@ func requireCode(t *testing.T, r *httptest.ResponseRecorder, status, code int) {
 
 func TestMySQLWebAdminSetup(t *testing.T) {
 	h, token := setupHarness(t)
+	// The full create-and-login flow must work at the exact eight-byte boundary.
+	h.password = security.Token()[:8]
 	path := "/api/v1/admin/setup"
 	post := func(body []byte, ip string) *httptest.ResponseRecorder {
 		return h.request("POST", path, body, "application/json", ip, false, false, false)
@@ -91,7 +93,7 @@ func TestMySQLWebAdminSetup(t *testing.T) {
 	})
 	t.Run("password username and request bounds", func(t *testing.T) {
 		for i, pair := range [][2]string{
-			{"operator", "short"},
+			{"operator", strings.Repeat("a", 7)},
 			{"operator", strings.Repeat("密", 25)},
 			{" \t ", h.password},
 			{strings.Repeat("a", 129), h.password},

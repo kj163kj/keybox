@@ -66,7 +66,7 @@ func (s *Server) setupAdmin(w http.ResponseWriter, r *http.Request) {
 	}
 	input.Username = strings.TrimSpace(input.Username)
 	if !security.AdminCredentialsValid(input.Username, input.Password) {
-		s.write(w, r, 400, 40001, "username must be 1-128 UTF-8 bytes without control characters; password must be 16-72 UTF-8 bytes", nil)
+		s.write(w, r, 400, 40001, "username must be 1-128 UTF-8 bytes without control characters; password must be 8-72 UTF-8 bytes", nil)
 		return
 	}
 	release, ok := s.validationSlot(w, r)

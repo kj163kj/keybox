@@ -103,7 +103,7 @@ schemas.update({
         "username": {"type": "string", "minLength": 1, "maxLength": 128,
                      "description": "Trimmed username, 1-128 UTF-8 bytes; no control characters."},
         "password": {"type": "string", "format": "password", "writeOnly": True, "maxLength": 72,
-                     "description": "16-72 UTF-8 bytes, not characters. Never trimmed or truncated."},
+                     "description": "8-72 UTF-8 bytes, not characters. Never trimmed or truncated."},
     }),
     "AdminSetupResult": obj({"initialized": {"type": "boolean", "enum": [True]},
                              "admin": obj({"id": ID, "username": S})}),
