@@ -8,7 +8,7 @@ GRANT SELECT, INSERT, DELETE ON keybox.keybox_chains TO 'keybox_runtime';
 GRANT SELECT, INSERT ON keybox.keybox_key_fingerprints TO 'keybox_runtime';
 GRANT SELECT, INSERT, DELETE ON keybox.certificates TO 'keybox_runtime';
 GRANT SELECT, INSERT, DELETE ON keybox.validation_runs TO 'keybox_runtime';
-GRANT SELECT, UPDATE ON keybox.admins TO 'keybox_runtime';
+GRANT SELECT, INSERT, UPDATE ON keybox.admins TO 'keybox_runtime';
 GRANT SELECT, INSERT, UPDATE, DELETE ON keybox.admin_sessions TO 'keybox_runtime';
 GRANT SELECT, INSERT ON keybox.audit_logs TO 'keybox_runtime';
 GRANT SELECT, INSERT ON keybox.download_logs TO 'keybox_runtime';

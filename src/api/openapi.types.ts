@@ -164,6 +164,28 @@ export interface LoginResult {
   expires_at: string;
 }
 
+export interface AdminSetupStatus {
+  initialized: boolean;
+  setup_available: boolean;
+}
+
+export interface AdminSetupInput {
+  /** Deployment-only secret. Never store in browser storage or URLs. */
+  setup_token: string;
+  /** Trimmed username, 1-128 UTF-8 bytes; no control characters. */
+  username: string;
+  /** 16-72 UTF-8 bytes, not characters. Never trimmed or truncated. */
+  password: string;
+}
+
+export interface AdminSetupResult {
+  initialized: true;
+  admin: {
+    id: string;
+    username: string;
+  };
+}
+
 export interface Me {
   id: string;
   username: string;
@@ -291,7 +313,7 @@ export interface CertificatePage {
   status_checked_at: string;
 }
 
-export type ApiCode = 0 | 40001 | 40101 | 40301 | 40302 | 40303 | 40401 | 40501 | 40801 | 40901 | 40902 | 40903 | 41301 | 41501 | 42201 | 42202 | 42901 | 42902 | 50001 | 50301 | 50302 | 50303;
+export type ApiCode = 0 | 40001 | 40101 | 40102 | 40301 | 40302 | 40303 | 40304 | 40401 | 40501 | 40801 | 40901 | 40902 | 40903 | 40904 | 41301 | 41501 | 42201 | 42202 | 42901 | 42902 | 50001 | 50301 | 50302 | 50303;
 
 export const OPENAPI_OPERATIONS = {
   validateKeybox: { method: "POST", path: "/api/v1/keyboxes/validate", requiresAdminSession: false, requiresCsrf: false },
@@ -301,6 +323,8 @@ export const OPENAPI_OPERATIONS = {
   getKeyboxStatus: { method: "GET", path: "/api/v1/keyboxes/{id}/status", requiresAdminSession: false, requiresCsrf: false },
   downloadKeybox: { method: "GET", path: "/api/v1/keyboxes/{id}/download", requiresAdminSession: false, requiresCsrf: false },
   getCertificateStatus: { method: "GET", path: "/api/v1/certificates/status", requiresAdminSession: false, requiresCsrf: false },
+  adminSetupStatus: { method: "GET", path: "/api/v1/admin/setup", requiresAdminSession: false, requiresCsrf: false },
+  adminSetup: { method: "POST", path: "/api/v1/admin/setup", requiresAdminSession: false, requiresCsrf: false },
   adminLogin: { method: "POST", path: "/api/v1/admin/login", requiresAdminSession: false, requiresCsrf: false },
   adminLogout: { method: "POST", path: "/api/v1/admin/logout", requiresAdminSession: true, requiresCsrf: true },
   adminMe: { method: "GET", path: "/api/v1/admin/me", requiresAdminSession: true, requiresCsrf: false },

@@ -1,6 +1,7 @@
 package config
 
 import (
+	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -72,6 +73,10 @@ func Load() (Config, error) {
 	if err != nil {
 		return c, err
 	}
+	c.HTTP.SetupTokenHash, err = setupTokenHash()
+	if err != nil {
+		return c, err
+	}
 	for _, origin := range strings.Split(os.Getenv("KEYBOX_ALLOWED_ORIGINS"), ",") {
 		origin = strings.TrimSpace(origin)
 		if origin == "" {
@@ -136,4 +141,21 @@ func Load() (Config, error) {
 		c.CRLMaxStale = d
 	}
 	return c, nil
+}
+
+func setupTokenHash() ([]byte, error) {
+	raw := Secret("KEYBOX_SETUP_TOKEN")
+	if raw == "" && os.Getenv("KEYBOX_SETUP_TOKEN_FILE") == "" {
+		return nil, nil // Unconfigured setup stays closed; existing login still works.
+	}
+	if len(raw) < 32 || len(raw) > 256 {
+		return nil, errors.New("KEYBOX_SETUP_TOKEN must be 32-256 printable ASCII bytes")
+	}
+	for _, ch := range []byte(raw) {
+		if ch < 0x21 || ch > 0x7e {
+			return nil, errors.New("KEYBOX_SETUP_TOKEN must be 32-256 printable ASCII bytes")
+		}
+	}
+	digest := sha256.Sum256([]byte(raw))
+	return digest[:], nil
 }

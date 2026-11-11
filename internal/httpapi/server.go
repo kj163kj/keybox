@@ -28,6 +28,7 @@ type Config struct {
 	Origins                                       []string
 	TrustedProxies                                []netip.Prefix
 	HashKey, CSRFKey                              []byte
+	SetupTokenHash                                []byte
 	MaxFileBytes                                  int64
 	UploadPerHour, GlobalUploadsPerHour           int
 	GuestDownloadsPerHour, GlobalDownloadsPerHour int
@@ -116,6 +117,8 @@ func New(s *Server) http.Handler {
 		r.Get("/keyboxes/{id}/status", s.status)
 		r.Get("/keyboxes/{id}/download", s.downloadGuest)
 		r.Get("/certificates/status", s.certificateStatus)
+		r.Get("/admin/setup", s.setupStatus)
+		r.Post("/admin/setup", s.setupAdmin)
 		r.Post("/admin/login", s.login)
 		r.Route("/admin", func(r chi.Router) {
 			r.Use(s.authenticate)

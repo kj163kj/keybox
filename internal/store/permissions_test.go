@@ -1,6 +1,7 @@
 package store_test
 
 import (
+	"context"
 	"os"
 	"strings"
 	"testing"
@@ -68,6 +69,9 @@ func TestMySQLRuntimeRoleCannotModifyLogs(t *testing.T) {
 	}
 	db, _ := runtime.DB.DB()
 	defer db.Close()
+	if _, err := runtime.BootstrapAdmin(context.Background(), "operator", bootstrapHash(t), store.Actor{RequestID: domain.NewID()}); err != nil {
+		t.Fatal("runtime role cannot initialize administrator", err)
+	}
 	if err := runtime.Audit(runtime.DB, store.Actor{RequestID: domain.NewID()}, "test_append_only", "request", "", "success", nil); err != nil {
 		t.Fatal("runtime cannot append audit")
 	}

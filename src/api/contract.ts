@@ -246,6 +246,13 @@ export const ERROR_CODE_META: Record<ApiCode, ErrorCodeMeta> = {
     description: '请检查账号和密码；会话过期时请重新登录。',
     retryable: false,
   },
+  40102: {
+    code: 40102,
+    httpStatus: 401,
+    title: '初始化令牌错误',
+    description: '请核对部署时配置的初始化令牌。',
+    retryable: false,
+  },
   40301: {
     code: 40301,
     httpStatus: 403,
@@ -265,6 +272,13 @@ export const ERROR_CODE_META: Record<ApiCode, ErrorCodeMeta> = {
     httpStatus: 403,
     title: '访问来源未授权',
     description: '请从站点的正式地址访问。',
+    retryable: false,
+  },
+  40304: {
+    code: 40304,
+    httpStatus: 403,
+    title: '初始化未开放',
+    description: '请先在服务端配置初始化令牌。',
     retryable: false,
   },
   40401: {
@@ -309,6 +323,13 @@ export const ERROR_CODE_META: Record<ApiCode, ErrorCodeMeta> = {
     title: '请确认下载风险',
     description:
       '确认私钥公开风险后，才能开启游客下载。',
+    retryable: false,
+  },
+  40904: {
+    code: 40904,
+    httpStatus: 409,
+    title: '管理员已初始化',
+    description: '请使用已有账号登录。',
     retryable: false,
   },
   41301: {
@@ -393,6 +414,11 @@ export interface AuditActionOption {
 }
 
 export const AUDIT_ACTION_OPTIONS: AuditActionOption[] = [
+  {
+    value: 'admin_bootstrap',
+    label: '初始化管理员',
+    category: 'auth',
+  },
   {
     value: 'guest_download_setting_update',
     label: '全局游客下载开关变更',

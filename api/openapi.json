@@ -716,6 +716,191 @@
         ]
       }
     },
+    "/api/v1/admin/setup": {
+      "get": {
+        "operationId": "adminSetupStatus",
+        "summary": "Get first-administrator initialization state; missing or corrupt database state fails closed.",
+        "tags": [
+          "Admin"
+        ],
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "headers": {
+              "X-Request-ID": {
+                "description": "Fresh server-generated request ID.",
+                "schema": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{32}$"
+                }
+              },
+              "Cache-Control": {
+                "description": "Always no-store.",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "no-store"
+                  ]
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "enum": [
+                        0
+                      ]
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/AdminSetupStatus"
+                    },
+                    "request_id": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{32}$"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "data",
+                    "request_id"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "408": {
+            "$ref": "#/components/responses/Error408"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error429"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          }
+        }
+      },
+      "post": {
+        "operationId": "adminSetup",
+        "summary": "Create the first administrator with deployment token; permanently closes setup, audits atomically, no automatic login.",
+        "tags": [
+          "Admin"
+        ],
+        "security": [],
+        "responses": {
+          "201": {
+            "description": "Success",
+            "headers": {
+              "X-Request-ID": {
+                "description": "Fresh server-generated request ID.",
+                "schema": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{32}$"
+                }
+              },
+              "Cache-Control": {
+                "description": "Always no-store.",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "no-store"
+                  ]
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "enum": [
+                        0
+                      ]
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/AdminSetupResult"
+                    },
+                    "request_id": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{32}$"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "data",
+                    "request_id"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "408": {
+            "$ref": "#/components/responses/Error408"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "415": {
+            "$ref": "#/components/responses/Error415"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error429"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Origin"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminSetupInput"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/admin/login": {
       "post": {
         "operationId": "adminLogin",
@@ -3113,6 +3298,87 @@
         ],
         "additionalProperties": false
       },
+      "AdminSetupStatus": {
+        "type": "object",
+        "properties": {
+          "initialized": {
+            "type": "boolean"
+          },
+          "setup_available": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "initialized",
+          "setup_available"
+        ],
+        "additionalProperties": false
+      },
+      "AdminSetupInput": {
+        "type": "object",
+        "properties": {
+          "setup_token": {
+            "type": "string",
+            "format": "password",
+            "writeOnly": true,
+            "minLength": 32,
+            "maxLength": 256,
+            "description": "Deployment-only secret. Never store in browser storage or URLs."
+          },
+          "username": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "description": "Trimmed username, 1-128 UTF-8 bytes; no control characters."
+          },
+          "password": {
+            "type": "string",
+            "format": "password",
+            "writeOnly": true,
+            "maxLength": 72,
+            "description": "16-72 UTF-8 bytes, not characters. Never trimmed or truncated."
+          }
+        },
+        "required": [
+          "setup_token",
+          "username",
+          "password"
+        ],
+        "additionalProperties": false
+      },
+      "AdminSetupResult": {
+        "type": "object",
+        "properties": {
+          "initialized": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "admin": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{32}$"
+              },
+              "username": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "username"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "initialized",
+          "admin"
+        ],
+        "additionalProperties": false
+      },
       "Me": {
         "type": "object",
         "properties": {
@@ -3682,7 +3948,7 @@
         "schema": {
           "type": "string"
         },
-        "description": "Exact configured HTTPS origin; required for admin writes, including login."
+        "description": "Exact configured HTTPS origin; required for admin writes, including login and setup."
       },
       "Policy": {
         "name": "guest_download_policy",
@@ -3725,7 +3991,7 @@
         ]
       },
       "Error401": {
-        "description": "Application error codes: 40101",
+        "description": "Application error codes: 40101, 40102",
         "headers": {
           "X-Request-ID": {
             "description": "Fresh server-generated request ID.",
@@ -3752,11 +4018,12 @@
           }
         },
         "x-error-codes": [
-          40101
+          40101,
+          40102
         ]
       },
       "Error403": {
-        "description": "Application error codes: 40301, 40302, 40303",
+        "description": "Application error codes: 40301, 40302, 40303, 40304",
         "headers": {
           "X-Request-ID": {
             "description": "Fresh server-generated request ID.",
@@ -3785,7 +4052,8 @@
         "x-error-codes": [
           40301,
           40302,
-          40303
+          40303,
+          40304
         ]
       },
       "Error404": {
@@ -3882,7 +4150,7 @@
         ]
       },
       "Error409": {
-        "description": "Application error codes: 40901, 40902, 40903",
+        "description": "Application error codes: 40901, 40902, 40903, 40904",
         "headers": {
           "X-Request-ID": {
             "description": "Fresh server-generated request ID.",
@@ -3911,7 +4179,8 @@
         "x-error-codes": [
           40901,
           40902,
-          40903
+          40903,
+          40904
         ]
       },
       "Error413": {

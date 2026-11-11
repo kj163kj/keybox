@@ -95,6 +95,18 @@ schemas.update({
     "LoginInput": obj({"username": {"type": "string", "minLength": 1, "maxLength": 128},
                        "password": {"type": "string", "format": "password", "maxLength": 72}}),
     "LoginResult": obj({"admin": obj({"id": ID, "username": S}), "csrf_token": SHA, "expires_at": DT}),
+    "AdminSetupStatus": obj({"initialized": B, "setup_available": B}),
+    "AdminSetupInput": obj({
+        "setup_token": {"type": "string", "format": "password", "writeOnly": True,
+                        "minLength": 32, "maxLength": 256,
+                        "description": "Deployment-only secret. Never store in browser storage or URLs."},
+        "username": {"type": "string", "minLength": 1, "maxLength": 128,
+                     "description": "Trimmed username, 1-128 UTF-8 bytes; no control characters."},
+        "password": {"type": "string", "format": "password", "writeOnly": True, "maxLength": 72,
+                     "description": "16-72 UTF-8 bytes, not characters. Never trimmed or truncated."},
+    }),
+    "AdminSetupResult": obj({"initialized": {"type": "boolean", "enum": [True]},
+                             "admin": obj({"id": ID, "username": S})}),
     "Me": obj({"id": ID, "username": S, "csrf_token": SHA, "expires_at": DT}),
     "KeyboxPatch": {**obj({"visibility": visibility, "admin_note": note,
                           "guest_download_policy": ref("DownloadPolicy")}, []), "minProperties": 1},
@@ -127,8 +139,8 @@ headers = {
     "Cache-Control": {"description": "Always no-store.", "schema": {"type": "string", "enum": ["no-store"]}},
 }
 error_codes = {
-    "400": [40001], "401": [40101], "403": [40301, 40302, 40303], "404": [40401], "405": [40501],
-    "408": [40801], "409": [40901, 40902, 40903], "413": [41301], "415": [41501],
+    "400": [40001], "401": [40101, 40102], "403": [40301, 40302, 40303, 40304], "404": [40401], "405": [40501],
+    "408": [40801], "409": [40901, 40902, 40903, 40904], "413": [41301], "415": [41501],
     "422": [42201, 42202], "429": [42901, 42902], "500": [50001], "503": [50301, 50302, 50303],
 }
 responses = {}
@@ -154,7 +166,7 @@ parameters = {
     "Status": {"name": "status", "in": "query", "schema": ref("Status"),
                "description": "Filter projected status; stale historical valid is indeterminate."},
     "Origin": {"name": "Origin", "in": "header", "required": True, "schema": S,
-               "description": "Exact configured HTTPS origin; required for admin writes, including login."},
+               "description": "Exact configured HTTPS origin; required for admin writes, including login and setup."},
     "Policy": {"name": "guest_download_policy", "in": "query", "schema": ref("DownloadPolicy")},
 }
 
@@ -184,7 +196,7 @@ paths = {}
 
 
 def operation(path, method, op_id, description, result, *, admin=False, errors=(), params=(),
-              request=None, status="200", binary=False, login=False):
+              request=None, status="200", binary=False, preauth=False):
     method = method.lower()
     all_errors = set(errors) | {"403", "408", "429", "500", "503"}
     if admin:
@@ -197,9 +209,9 @@ def operation(path, method, op_id, description, result, *, admin=False, errors=(
     parameters_for_op = list(params)
     if "{id}" in path:
         parameters_for_op.insert(0, param("ID"))
-    if login or (admin and method != "get"):
+    if (preauth or admin) and method != "get":
         parameters_for_op.append(param("Origin"))
-    op = {"operationId": op_id, "summary": description, "tags": ["Admin" if admin or login else "Public"],
+    op = {"operationId": op_id, "summary": description, "tags": ["Admin" if admin or preauth else "Public"],
           "security": [auth] if admin else [], "responses": response_map}
     if parameters_for_op:
         op["parameters"] = parameters_for_op
@@ -238,8 +250,15 @@ operation(prefix + "/certificates/status", "get", "getCertificateStatus",
               {"name": "fingerprint_sha256", "in": "query", "schema": S,
                "description": "64 hex digits ignoring colons; mutually exclusive with serial."}],
           errors=["400"])
+operation(prefix + "/admin/setup", "get", "adminSetupStatus",
+          "Get first-administrator initialization state; missing or corrupt database state fails closed.",
+          ref("AdminSetupStatus"), preauth=True)
+operation(prefix + "/admin/setup", "post", "adminSetup",
+          "Create the first administrator with deployment token; permanently closes setup, audits atomically, no automatic login.",
+          ref("AdminSetupResult"), preauth=True, request=body(ref("AdminSetupInput")),
+          status="201", errors=["400", "401", "409", "415"])
 operation(prefix + "/admin/login", "post", "adminLogin", "Login and create secure, eight-hour cookie session.",
-          ref("LoginResult"), login=True, request=body(ref("LoginInput")), errors=["400", "401", "415"])
+          ref("LoginResult"), preauth=True, request=body(ref("LoginInput")), errors=["400", "401", "415"])
 operation(prefix + "/admin/logout", "post", "adminLogout", "Revoke session and clear cookie.",
           {"nullable": True, "description": "Always null."}, admin=True)
 operation(prefix + "/admin/me", "get", "adminMe", "Get identity and current session CSRF token.",

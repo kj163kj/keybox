@@ -8,11 +8,11 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
-	"gorm.io/gorm"
 	"keybox/internal/config"
 	"keybox/internal/domain"
 	"keybox/internal/httpapi"
@@ -54,21 +54,16 @@ func run(log *slog.Logger) error {
 	defer cancel()
 	switch command {
 	case "init-admin":
-		username, password := config.Secret("KEYBOX_ADMIN_USERNAME"), config.Secret("KEYBOX_ADMIN_PASSWORD")
-		if username == "" || len(username) > 128 || len(password) < 16 || len(password) > 72 {
+		username, password := strings.TrimSpace(config.Secret("KEYBOX_ADMIN_USERNAME")), config.Secret("KEYBOX_ADMIN_PASSWORD")
+		if !security.AdminCredentialsValid(username, password) {
 			return errors.New("admin requires username and 16-72 byte password")
 		}
 		hash, err := bcrypt.GenerateFromPassword([]byte(password), 12)
 		if err != nil {
 			return err
 		}
-		admin := store.Admin{ID: domain.NewID(), Username: username, PasswordHash: string(hash), Status: "active", CreatedAt: time.Now().UTC()}
-		if err := s.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-			if err := tx.Create(&admin).Error; err != nil {
-				return err
-			}
-			return s.Audit(tx, store.Actor{AdminID: &admin.ID, RequestID: domain.NewID()}, "admin_bootstrap", "admin", admin.ID, "success", nil)
-		}); err != nil {
+		admin, err := s.BootstrapAdmin(ctx, username, string(hash), store.Actor{RequestID: domain.NewID()})
+		if err != nil {
 			return err
 		}
 		log.Info("admin created", "admin_id", admin.ID)
