@@ -1,6 +1,6 @@
 # Keybox 后端设计与运维
 
-本仓库提供可编译、可运行、带真实 MySQL 集成测试的后端，不含前端。API 的完整字段、
+本仓库提供可编译、可运行、带真实 MySQL 集成测试的后端，以及查询与管理 Web UI。API 的完整字段、
 状态码和错误码以 `api/openapi.json` 与 `docs/api.md` 为契约。
 
 `valid` 表示本次校验时：XML/密钥匹配、证书路径、信任根、有效期、可用的 Google 吊销
@@ -47,6 +47,7 @@ api/openapi.json            OpenAPI 3.0.3 契约
 scripts/generate_openapi.py 契约生成与一致性检查
 deploy/                    数据库最小权限角色、Nginx 配置参考
 docs/                      设计、字段说明、验收证据
+src/pages/                 查询、登录、首次管理员初始化与管理页面
 ```
 
 ## 2. 数据库迁移、索引与事务
@@ -68,7 +69,7 @@ docs/                      设计、字段说明、验收证据
 | admin_sessions | 随机 token 的 SHA-256 唯一、CSRF token 哈希、绝对过期时间、撤销时间；会话与过期索引 |
 | audit_logs | 追加式操作日志；时间、管理员、动作、目标、request_id 索引；details_json 只写白名单元数据 |
 | download_logs | 追加式授权/完成/拒绝记录；游客/管理员、keybox、IP 摘要、request_id 索引；未知目标允许 NULL |
-| settings | setting_key 唯一；迁移中写入 `guest_download_enabled=false`；仅保存非敏感设置 |
+| settings | setting_key 唯一；`guest_download_enabled=false` 默认禁用下载；`admin_setup_completed` 是一次性初始化标记；仅保存非敏感设置 |
 | crl_cache | 内容 SHA-256 唯一；原始公共 JSON、ETag、Last-Modified、fetched_at、expires_at；旧内容版本保留 |
 | trusted_roots | `(version,fingerprint_sha256)` 唯一；公共 PEM、是否当前启用；旧集合永久保留用于复现 |
 | rate_buckets | `(bucket_key,window_start)` 联合主键；跨实例固定窗口计数和清理索引 |
@@ -90,6 +91,10 @@ docs/                      设计、字段说明、验收证据
    新授权会看到关闭状态。已授权的传输可能仍在完成，已发送的数据无法撤回。
 5. 多维限流：按稳定哈希顺序锁定配额行，检查和累加在同一事务内；任一维超额，
    所有维度的本次累加回滚。没有进程本地配额在扩容后失效的问题。
+6. 首次管理员初始化：事务外完成 token 校验和 bcrypt，事务内 UPDATE 锁定
+   `admin_setup_completed` 行，检查标记及全部管理员（含 disabled），插入账号、
+   标记完成、追加 `admin_bootstrap` 审计后一并提交；任一步失败均回滚。
+   Web 与离线命令共用此事务，跨实例并发只允许一个账号创建成功。
 
 运行账号使用 `deploy/runtime-grants.sql` 中的角色，不具备 audit_logs/download_logs 的
 UPDATE、DELETE、TRUNCATE、DROP 权限。普通应用管理员也没有任何删除日志的 API。
@@ -202,9 +207,25 @@ keybox roots-apply --file reviewed-candidate.pem --sha256 APPROVED_FILE_SHA256
 
 ## 5. 管理员认证、CSRF 与审计
 
-初始管理员由 `init-admin` 从环境变量或 *_FILE 读取用户名和密码创建，密码必须
-16–72 字节，bcrypt cost=12；重复账号失败，不覆盖现有账号。没有默认账号/弱密码，
-没有公开注册入口。数据库账号必须具有创建管理员所需权限。
+首次部署通过 `/admin/setup` 设置管理员；访问 `/admin/login` 时会先查询初始化状态，
+未初始化则自动进入设置页。部署者必须先为后端配置随机 `KEYBOX_SETUP_TOKEN`，
+也支持 `_FILE`。令牌只在进程中保存 SHA-256 摘要用于常量时间比较，不入数据库、
+日志、响应或前端构建；请求中的令牌只通过 HTTPS JSON body 提交。
+配置未提供时入口不可用；配置了不可读/空文件或非 32–256 位可打印 ASCII 令牌则拒绝启动。
+应使用至少 32 个随机字节生成令牌，初始化后从所有实例移除配置并重启。
+
+用户名去两端空白后为 1–128 UTF-8 字节且不含控制字符，密码必须 16–72 UTF-8 字节，
+bcrypt cost=12；密码不裁剪、不截断。确认密码只用于前端校验，不提交服务端。
+成功后跳转登录，不自动签发会话。没有默认账号/密码，也不提供公开的追加管理员入口。
+页面不把密码或初始化令牌写入 localStorage、sessionStorage、URL 或查询缓存。
+
+迁移 `000002` 为已有任意管理员的数据库设置 `admin_setup_completed=true`，
+空库设置 false。运行时检查标记与全部管理员，任一表明已初始化即关闭入口。
+标记缺失/异常或数据库故障返回 503，不能推断成“尚未初始化”。
+完成标记不会因账号停用/外部删除而清除，初始化不能用于找回密码。
+`init-admin` 保留为可选离线方式，从临时 `KEYBOX_ADMIN_USERNAME/PASSWORD` 或 *_FILE
+读取凭据并调用相同事务；已初始化时拒绝创建第二个管理员。
+运行角色需要 `admins` 的 SELECT、INSERT、UPDATE 权限，无日志修改/删除权限。
 
 登录生成 256 位随机会话 token，数据库仅存 SHA-256。Cookie：
 `__Host-keybox_session; Secure; HttpOnly; SameSite=Strict; Path=/`，
@@ -213,9 +234,10 @@ keybox roots-apply --file reviewed-candidate.pem --sha256 APPROVED_FILE_SHA256
 全局配额共同限制密码尝试。
 
 CSRF token 用独立 256 位密钥对会话 token 进行 HMAC，数据库只存其哈希；
-登录和 `/me` 向已授权调用方提供 token。所有管理员 POST/PATCH/DELETE 要求精确
-白名单 Origin 与 `X-CSRF-Token`，常量时间比较。登录也要求 Origin，并只接受
-application/json；它没有会话前置 CSRF token。GET 下载无需 CSRF，但必须有有效会话。
+登录和 `/me` 向已授权调用方提供 token。已登录管理员 POST/PATCH/DELETE 要求精确
+白名单 Origin 与 `X-CSRF-Token`，常量时间比较。登录与首次初始化也要求 Origin，
+并只接受 application/json；它们没有会话前置 CSRF token，初始化另需部署令牌。
+GET 下载无需 CSRF，但必须有有效会话。
 Strict Cookie 要求同站点部署；推荐前端与 API 通过同源反向代理接入。
 
 每次成功管理员写操作与审计同事务；失败写请求另记录 `admin_write_rejected`。
@@ -225,7 +247,7 @@ Strict Cookie 要求同站点部署；推荐前端与 API 通过同源反向代�
 `crl_refresh/root_set_update`。后台动作 admin_id=NULL。
 
 审计包含 actor、动作、目标、HMAC(IP)、HMAC(UA)、结果、request_id、时间。
-只记录备注“发生变更”，不记录备注正文；密码、Cookie、CSRF token、XML、SQL参数、
+只记录备注“发生变更”，不记录备注正文；密码、初始化令牌、Cookie、CSRF token、XML、SQL参数、
 解析异常原文、原始 IP/UA 都不进入应用日志。HTTP 日志路径使用路由模板，
 不记录 query string 和未经匹配的用户路径。GORM SQL 日志关闭。
 
@@ -249,7 +271,7 @@ effective = global_enabled
 
 开启全局开关除 CSRF 外必须带
 `X-Confirm-Guest-Download: enable-sensitive-downloads`，调用方必须在二次确认后发送；
-没有该头返回 409。关闭不需要确认头。前端确认 UI 不在本仓库范围。
+没有该头返回 409。关闭不需要确认头。管理页面在发送开启请求前显示二次确认。
 运维紧急命令 `keybox guest-download-disable` 只依赖数据库和管理员凭据，
 不依赖 CRL 可用或旧根有效；该命令同样写审计。
 
@@ -273,6 +295,7 @@ authorized 是“已允许释放”，不是“客户端已保存完整文件”
 | 普通 API | 每 IP 摘要 120/分钟，全局 3000/分钟 |
 | 匿名预检 + 上传合计 | 每 IP 10/小时，全局 100/小时 |
 | 登录 | 每 IP 5/15 分钟，每用户名摘要 10/15 分钟，全局 50/分钟 |
+| 首次初始化尝试 | 每 IP 5/15 分钟，全局 30/15 分钟；密码哈希复用 8 个全局重操作租约 |
 | 游客下载尝试 | 每 IP 5/小时、每 IP+Keybox 2/小时、每 Keybox 20/小时 |
 | 全部下载尝试 | 游客+管理员全局 100/小时 |
 | 管理员下载 | 每管理员 20/小时，每管理员+Keybox 5/小时 |
@@ -313,23 +336,32 @@ Turnstile/hCaptcha 为可选扩展，本版本没有声称已经集成；上线�
 
 可选：`KEYBOX_HTTP_ADDR`、`KEYBOX_TRUSTED_PROXIES`、`KEYBOX_MAX_FILE_BYTES`、
 `KEYBOX_CRL_MAX_STALE`、各配额，详见配置代码和 .env.example。
-初始化账号仅使用临时 `KEYBOX_ADMIN_USERNAME/KEYBOX_ADMIN_PASSWORD`，完成后移除环境。
+首次 Web 初始化另配置 `KEYBOX_SETUP_TOKEN` 或 `KEYBOX_SETUP_TOKEN_FILE`，
+完成后移除；此设置不影响已创建账号登录。仅使用离线初始化或维护命令时才临时配置
+`KEYBOX_ADMIN_USERNAME/KEYBOX_ADMIN_PASSWORD`，完成后移除环境。
 
 最小启动顺序：
 
 ```sh
 go build -o bin/keybox ./cmd/keybox
-# 分别注入迁移账号 DSN、初始化管理员凭据后执行：
+# 注入迁移账号 DSN：
 bin/keybox migrate-up
-bin/keybox init-admin
-# 切换为最小权限运行 DSN、注入上述必要密钥与 origin：
+# DBA 应用 deploy/runtime-grants.sql 并给运行账号授予角色。
+# 切换为最小权限运行 DSN，注入必要密钥、Origin 和一次性初始化令牌：
 bin/keybox serve
+# 前端单独构建，将 dist/ 交给 HTTPS 静态站点：
+npm ci
+npm run build
+# 浏览器访问 /admin/login，按初始化页面设置账号密码。
 ```
 
 Docker 使用 `compose.yaml`，MySQL 不发布宿主机端口，API 仅绑定宿主机 127.0.0.1:8080。
-先启动 db、完成迁移、创建运行账号并授予 `keybox_runtime` 角色、初始化管理员，再启动
-api。Compose 只自动创建迁移账号，不能用它充当 API 运行账号。参考 Nginx 配置终止 TLS；
-普通 HTTP 浏览器登录不会携带 Secure Cookie。
+先启动 db、完成迁移、创建运行账号并授予 `keybox_runtime` 角色，再启动 api，
+最后通过 Web 初始化。升级时也须应用 `000002` 和更新运行角色授权。
+Compose 只自动创建迁移账号，不能用它充当 API 运行账号。API 镜像不内置前端：
+将 `npm run build` 的 `dist/` 发布到 Nginx 静态根目录，同源转发 `/api/`；
+参考配置用 `try_files` 回退到 index.html，确保 `/admin/setup` 可直接访问。
+TLS 与 `KEYBOX_ALLOWED_ORIGINS` 必须匹配；普通 HTTP 浏览器登录不会携带 Secure Cookie。
 
 每分钟：重载 active 根、按需刷新 CRL、清理匿名运行/过期会话/限流桶、最多再校验
 20 个陈旧或版本变化的 Keybox。匿名运行保留 24 小时；过期会话至少留到过期后 24 小时；

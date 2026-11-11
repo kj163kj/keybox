@@ -1,7 +1,7 @@
 # API v1 契约
 
 机器可读契约：`api/openapi.json`，OpenAPI 3.0.3。以下是便于前后端评审的字段说明。
-所有路径以 `/api/v1` 为前缀，健康探测例外。无前端实现。
+所有路径以 `/api/v1` 为前缀，健康探测例外。Web UI 使用同一契约生成的 TypeScript 类型。
 
 ## 通用约定
 
@@ -31,8 +31,8 @@ ID：32 位小写 hex；指纹：64 位小写 hex；序列号：无前导零的�
 id DESC 排序；并发插入时页码分页不是一致性快照。
 
 跨域请求的 Origin 必须在精确 HTTPS 白名单。管理员使用
-`__Host-keybox_session` Cookie；除登录外所有管理员写请求同时需要 Origin、
-`X-CSRF-Token`。登录也需 Origin。GET 不要求 CSRF。
+`__Host-keybox_session` Cookie；除登录与首次初始化外，所有管理员写请求同时需要 Origin、
+`X-CSRF-Token`。登录和首次初始化也需 Origin；初始化额外需要部署令牌。GET 不要求 CSRF。
 
 ## 复用数据类型
 
@@ -111,12 +111,14 @@ serial 不具有跨 issuer 的全局唯一性，必须返回匹配列表，不�
 
 ## 管理员接口
 
-以下表中除登录外均要求 Cookie。所有写接口增加 401/40101 未登录/失效，
+以下表中除登录和 `/admin/setup` 外均要求 Cookie。需要会话的写接口增加 401/40101 未登录/失效，
 403/40302 CSRF 或写请求 Origin 校验失败；有 JSON body 的操作要求 application/json，
 拒绝未知字段、尾随第二个 JSON 对象和超过 8 KiB 的请求。
 
 | 方法与路径 | 请求 | 成功 data | 业务失败 HTTP/code |
 | --- | --- | --- | --- |
+| GET /admin/setup | 无；无需会话 | 200 `{initialized:boolean,setup_available:boolean}`；仅当未初始化且后端已配置令牌时 available=true | 503/50301 状态读取失败或迁移标记缺失/异常 |
+| POST /admin/setup | JSON `{setup_token:string,username:string,password:string}`；无需会话/CSRF；要求白名单 Origin | 201 `{initialized:true,admin:{id,username}}`；不签发 Cookie，随后正常登录 | 400/40001 格式/长度；401/40102 令牌错误；403/40303 Origin；403/40304 未配置令牌；409/40904 已初始化；415/41501；429/42901 或 42902；503/50301 存储/审计故障 |
 | POST /admin/login | JSON `{username:string,password:string}`；Origin 必须在白名单 | 200 `{admin:{id,username},csrf_token,expires_at}`；Set-Cookie | 400/40001 格式；401/40101 凭据错误或禁用；403/40303 Origin；415/41501；429/42901 或 42902 |
 | POST /admin/logout | 无 body；CSRF | 200 null；撤销会话并删除 Cookie | 401、403/40302 |
 | GET /admin/me | Cookie | 200 `{id,username,csrf_token,expires_at}` | 401 |
@@ -133,6 +135,13 @@ serial 不具有跨 issuer 的全局唯一性，必须返回匹配列表，不�
 | GET /admin/download-logs | page、page_size | 200 Page<DownloadLog> | 400/40001 |
 | GET /admin/system/health | 无 | 200 Health；依赖退化时 503/50302，data 仍为 Health | 401；503/50301 DB/鉴权不可用 |
 | POST /admin/system/crl/refresh | 无 body；CSRF | 200 `{version,fetched_at,expires_at,usable}` | 429/42901；503/50303 上游失败；503/50301 持久化不可用 |
+
+初始化 `setup_token` 与后端环境 `KEYBOX_SETUP_TOKEN` 一致，部署配置接受 32–256 位可打印
+ASCII；推荐用 32 随机字节生成。用户名去首尾空白后为 1–128 UTF-8 字节，不含控制字符；
+密码为 16–72 UTF-8 字节（非字符数），保持原样。确认密码仅在页面校验，不是 API 字段。
+初始化成功与 `admin_bootstrap` 审计同事务。存在任意管理员（含 disabled）或完成标记为 true
+时，始终返回 40904，不覆盖账号、不重置密码。缺少初始化标记返回 503，不开放创建。
+POST 初始化每 IP 5 次/15 分钟、全局 30 次/15 分钟；所有失败写入脱敏审计。
 
 开启确认头固定为：
 
@@ -168,15 +177,18 @@ crl:{version,fetched_at,expires_at,expired,usable},guest_download_enabled}`。
 | 0 | 200/201 | 请求成功；业务校验状态仍需读取 overall_status |
 | 40001 | 400 | 请求字段、JSON、multipart 或分页/枚举格式错误 |
 | 40101 | 401 | 管理员未登录、会话过期/撤销、凭据错误或管理员停用 |
+| 40102 | 401 | 首次初始化令牌错误或缺失 |
 | 40301 | 403 | 游客下载策略拒绝 |
 | 40302 | 403 | 管理员写操作 CSRF/Origin 验证失败 |
-| 40303 | 403 | 请求 Origin 不在白名单，或登录缺少 Origin |
+| 40303 | 403 | 请求 Origin 不在白名单，或登录/初始化缺少 Origin |
+| 40304 | 403 | 首次初始化未开放，后端没有配置令牌 |
 | 40401 | 404 | 不存在、对调用方不可见、已软删除 |
 | 40501 | 405 | 路径不支持该方法 |
 | 40801 | 408 | 应用上下文超时/取消 |
 | 40901 | 409 | 文件或证书材料重复，包含已软删除对象占用的指纹 |
 | 40902 | 409 | 再校验运行过旧或状态/文件哈希冲突 |
 | 40903 | 409 | 开启敏感下载缺少显式确认 |
+| 40904 | 409 | 管理员已经初始化，入口已关闭 |
 | 41301 | 413 | 上传文件或 multipart 总体积超限 |
 | 41501 | 415 | 不支持的 Content-Type/扩展名/压缩格式 |
 | 42201 | 422 | XML、私钥或证书编码无法合法解析 |

@@ -11,6 +11,8 @@ import type {
   AdminKeyboxDetail,
   AdminKeyboxSummary,
   AdminKeyboxSummaryPage,
+  AdminSetupResult,
+  AdminSetupStatus,
   AuditLog,
   AuditLogPage,
   CertificateMatch,
@@ -1415,6 +1417,20 @@ export const mockApi = {
       },
       requestId: reqId,
     };
+  },
+
+  async adminSetupStatus(): Promise<{ data: AdminSetupStatus; requestId: string }> {
+    // Preview has its own configured account; it never bootstraps a real admin.
+    return { data: { initialized: true, setup_available: false }, requestId: nextRequestId() };
+  },
+
+  async adminSetup(): Promise<{ data: AdminSetupResult; requestId: string }> {
+    throw new ApiClientError({
+      httpStatus: 409,
+      code: 40904,
+      serverMessage: 'admin setup already completed',
+      requestId: nextRequestId(),
+    });
   },
 
   async adminLogin(input: LoginInput): Promise<{ data: LoginResult; requestId: string }> {

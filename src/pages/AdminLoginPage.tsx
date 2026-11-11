@@ -1,25 +1,23 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useQuery } from '@tanstack/react-query';
 import { z } from 'zod';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { KeyRound, Lock, ShieldCheck, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
-import { isMockMode } from '../api/client';
+import { apiClient, isMockMode } from '../api/client';
 import { getPreviewCredentials } from '../api/preview-config';
 import { ErrorBanner } from '../components/ErrorBanner';
 import { useAuth } from '../context/AuthContext';
+import { adminUsernameSchema, utf8ByteLength } from '../utils/credentials';
 
 const loginSchema = z.object({
-  username: z
-    .string()
-    .trim()
-    .min(1, '请输入管理员用户名')
-    .max(128, '用户名最多 128 个字符'),
+  username: adminUsernameSchema,
   password: z
     .string()
     .min(1, '请输入管理员密码')
-    .max(72, '密码最多 72 字节'),
+    .refine((value) => utf8ByteLength(value) <= 72, '密码最多 72 字节'),
 });
 
 type LoginFormValues = z.infer<typeof loginSchema>;
@@ -30,9 +28,14 @@ export function AdminLoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const [submitError, setSubmitError] = useState<unknown>(null);
+  const setup = useQuery({
+    queryKey: ['admin-setup'],
+    queryFn: ({ signal }) => apiClient.adminSetupStatus({ signal }),
+    gcTime: 0,
+  });
+  const routerState = location.state as { from?: string; username?: string; setupComplete?: boolean } | null;
 
-  const fromPath =
-    (location.state as { from?: string } | null)?.from || '/admin/keyboxes';
+  const fromPath = routerState?.from || '/admin/keyboxes';
 
   const {
     register,
@@ -42,7 +45,7 @@ export function AdminLoginPage() {
   } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      username: '',
+      username: routerState?.username || '',
       password: '',
     },
   });
@@ -58,6 +61,16 @@ export function AdminLoginPage() {
     }
   };
 
+  if (setup.isPending || setup.isFetching) {
+    return <p className="mx-auto max-w-md py-12 text-sm text-slate-500" role="status">正在检查初始化状态…</p>;
+  }
+  if (setup.isError) {
+    return <div className="mx-auto max-w-md py-8"><ErrorBanner error={setup.error} onRetry={() => void setup.refetch()} /></div>;
+  }
+  if (!setup.data.data.initialized) {
+    return <Navigate to="/admin/setup" state={{ from: fromPath }} replace />;
+  }
+
   return (
     <div className="mx-auto max-w-md py-8">
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs">
@@ -72,6 +85,10 @@ export function AdminLoginPage() {
             </p>
           </div>
         </div>
+
+        {routerState?.setupComplete && (
+          <p className="mt-4 text-sm text-emerald-700" role="status">管理员已创建，请登录。</p>
+        )}
 
         <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
           <div className="flex items-center gap-1.5 font-semibold text-slate-800">

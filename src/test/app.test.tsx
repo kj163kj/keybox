@@ -31,7 +31,7 @@ describe('Keybox Frontend Contract-Driven Suite', () => {
     const user = userEvent.setup();
     resetMockState({ authenticated: false });
     renderWithRouter(['/admin/login']);
-    await user.click(screen.getByTestId('preview-login-fill-btn'));
+    await user.click(await screen.findByTestId('preview-login-fill-btn'));
     expect(screen.getByTestId('login-username-input')).toHaveValue(getPreviewCredentials()!.username);
     expect(screen.getByTestId('login-password-input')).toHaveValue(getPreviewCredentials()!.password);
     await user.click(screen.getByTestId('login-submit-btn'));

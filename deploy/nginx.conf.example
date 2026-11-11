@@ -1,5 +1,18 @@
 # Include in an HTTPS server block with your TLS configuration. Do not enable a
 # CDN/cache on /api or record request bodies, cookies, authorization, or query args.
+# Publish ONLY the production dist/ directory here, never the source/.env files.
+root /srv/keybox/dist;
+index index.html;
+
+# React routes (including /admin/setup) must work when opened directly.
+location / {
+    try_files $uri $uri/ /index.html;
+    add_header Cache-Control "no-store" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "no-referrer" always;
+    add_header Strict-Transport-Security "max-age=31536000" always;
+}
+
 location /api/ {
     client_max_body_size 1088k;
     client_body_buffer_size 1088k;

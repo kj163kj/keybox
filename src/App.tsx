@@ -9,6 +9,7 @@ import { UploadKeyboxPage } from './pages/UploadKeyboxPage';
 import { PublicKeyboxDetailPage } from './pages/PublicKeyboxDetailPage';
 import { CertificateSearchPage } from './pages/CertificateSearchPage';
 import { AdminLoginPage } from './pages/AdminLoginPage';
+import { AdminSetupPage } from './pages/AdminSetupPage';
 import { AdminKeyboxListPage } from './pages/AdminKeyboxListPage';
 import { AdminKeyboxDetailPage } from './pages/AdminKeyboxDetailPage';
 import { AdminAuditLogsPage } from './pages/AdminAuditLogsPage';
@@ -76,6 +77,7 @@ export function AppRoutes() {
         <Route path="/keyboxes/:id" element={<PublicKeyboxDetailPage />} />
         <Route path="/certificates" element={<CertificateSearchPage />} />
         <Route path="/admin/login" element={<AdminLoginPage />} />
+        <Route path="/admin/setup" element={<AdminSetupPage />} />
         <Route element={<ProtectedAdminOutlet />}>
           <Route path="/admin/keyboxes" element={<AdminKeyboxListPage />} />
           <Route path="/admin/keyboxes/:id" element={<AdminKeyboxDetailPage />} />

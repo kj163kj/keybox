@@ -6,6 +6,9 @@ import {
   OPENAPI_OPERATIONS,
   type AdminKeyboxDetail,
   type AdminKeyboxSummaryPage,
+  type AdminSetupInput,
+  type AdminSetupResult,
+  type AdminSetupStatus,
   type AuditLogPage,
   type CertificatePage,
   type CRLRefresh,
@@ -326,6 +329,27 @@ export const apiClient = {
     const qs = buildQueryString(params);
     return requestJson<CertificatePage>(`${OPENAPI_OPERATIONS.getCertificateStatus.path}${qs}`, {
       method: OPENAPI_OPERATIONS.getCertificateStatus.method,
+    });
+  },
+
+  async adminSetupStatus(options: RequestOptions = {}): Promise<ApiResponseWithMeta<AdminSetupStatus>> {
+    if (__KEYBOX_PREVIEW__ && isMockMode()) {
+      return mockApi.adminSetupStatus();
+    }
+    return requestJson<AdminSetupStatus>(OPENAPI_OPERATIONS.adminSetupStatus.path, {
+      method: OPENAPI_OPERATIONS.adminSetupStatus.method,
+      signal: options.signal,
+    });
+  },
+
+  async adminSetup(input: AdminSetupInput): Promise<ApiResponseWithMeta<AdminSetupResult>> {
+    if (__KEYBOX_PREVIEW__ && isMockMode()) {
+      return mockApi.adminSetup();
+    }
+    return requestJson<AdminSetupResult>(OPENAPI_OPERATIONS.adminSetup.path, {
+      method: OPENAPI_OPERATIONS.adminSetup.method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(input),
     });
   },
 
