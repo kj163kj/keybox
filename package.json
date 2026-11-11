@@ -3,7 +3,6 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "packageManager": "pnpm@12.18.0",
   "scripts": {
     "generate:types": "node scripts/generate_api_types.mjs",
     "check:types-sync": "node scripts/generate_api_types.mjs --check",
