@@ -6,6 +6,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { KeyRound, Lock, ShieldCheck, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { isMockMode } from '../api/client';
+import { getPreviewCredentials } from '../api/preview-config';
 import { ErrorBanner } from '../components/ErrorBanner';
 import { useAuth } from '../context/AuthContext';
 
@@ -24,6 +25,7 @@ const loginSchema = z.object({
 type LoginFormValues = z.infer<typeof loginSchema>;
 
 export function AdminLoginPage() {
+  const previewCredentials = getPreviewCredentials();
   const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -153,27 +155,28 @@ export function AdminLoginPage() {
           </button>
         </form>
 
-        {isMockMode() && (
+        {__KEYBOX_PREVIEW__ && isMockMode() && previewCredentials && (
           <div className="mt-5 border-t border-slate-100 pt-4 text-xs">
             <div className="flex items-center gap-1.5 font-semibold text-slate-700">
               <Sparkles className="h-3.5 w-3.5 text-indigo-600" />
-              <span>演示账号</span>
+              <span>本地预览账号</span>
             </div>
             <div className="mt-2 flex flex-wrap gap-2">
               <button
                 type="button"
                 onClick={() => {
-                  setValue('username', 'secops_admin');
-                  setValue('password', 'StrongAdminPass#2026');
+                  setValue('username', previewCredentials.username);
+                  setValue('password', previewCredentials.password);
                 }}
+                data-testid="preview-login-fill-btn"
                 className="btn-interactive rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1 font-medium text-emerald-900 hover:bg-emerald-100"
               >
-                填入演示账号
+                填入预览账号
               </button>
               <button
                 type="button"
                 onClick={() => {
-                  setValue('username', 'secops_admin');
+                  setValue('username', previewCredentials.username);
                   setValue('password', 'wrong');
                 }}
                 className="btn-interactive rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1 font-medium text-rose-900 hover:bg-rose-100"

@@ -6,6 +6,7 @@ import {
   normalizeSerialInput,
 } from './contract';
 import { ApiClientError } from './errors';
+import { getPreviewCredentials } from './preview-config';
 import type {
   AdminKeyboxDetail,
   AdminKeyboxSummary,
@@ -1435,7 +1436,8 @@ export const mockApi = {
         retryAfterSeconds: 45,
       });
     }
-    if (input.password === 'wrong' || input.username === 'disabled') {
+    const credentials = getPreviewCredentials();
+    if (!credentials || input.username.trim() !== credentials.username || input.password !== credentials.password) {
       appendAudit('admin_login', 'admin', null, 'denied');
       throw new ApiClientError({
         httpStatus: 401,

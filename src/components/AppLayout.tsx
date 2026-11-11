@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { isMockMode, setApiMockMode } from '../api/client';
+import { isPreviewAvailable } from '../api/preview-config';
 import { useAuth } from '../context/AuthContext';
 
 export function AppLayout() {
@@ -79,16 +80,20 @@ export function AppLayout() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={handleToggleMockMode}
-              className="btn-interactive rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-medium text-slate-600 hover:bg-slate-100"
-              title="切换演示与实时数据"
-            >
-              数据源：{mockEnabled ? '演示数据' : '实时数据'}
-            </button>
-
-            <div className="h-4 w-px bg-slate-200" />
+            {__KEYBOX_PREVIEW__ && isPreviewAvailable() && (
+              <>
+                <button
+                  type="button"
+                  onClick={handleToggleMockMode}
+                  data-testid="preview-data-source-toggle"
+                  className="btn-interactive rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-medium text-slate-600 hover:bg-slate-100"
+                  title="切换演示与实时数据"
+                >
+                  数据源：{mockEnabled ? '演示数据' : '实时数据'}
+                </button>
+                <div className="h-4 w-px bg-slate-200" />
+              </>
+            )}
 
             <Link
               to="/admin/keyboxes"

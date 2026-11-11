@@ -13,3 +13,4 @@ coverage.out
 *.pfx
 node_modules/
 dist/
+dist-preview/

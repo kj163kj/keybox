@@ -11,6 +11,7 @@ import {
   setMockRecordPolicy,
 } from '../api/mock';
 import { setCsrfToken } from '../api/client';
+import { getPreviewCredentials } from '../api/preview-config';
 
 function renderWithRouter(initialEntries: string[] = ['/']) {
   const queryClient = createAppQueryClient();
@@ -26,6 +27,16 @@ function renderWithRouter(initialEntries: string[] = ['/']) {
 }
 
 describe('Keybox Frontend Contract-Driven Suite', () => {
+  it('local preview credentials can be filled and used to enter the admin pages', async () => {
+    const user = userEvent.setup();
+    resetMockState({ authenticated: false });
+    renderWithRouter(['/admin/login']);
+    await user.click(screen.getByTestId('preview-login-fill-btn'));
+    expect(screen.getByTestId('login-username-input')).toHaveValue(getPreviewCredentials()!.username);
+    expect(screen.getByTestId('login-password-input')).toHaveValue(getPreviewCredentials()!.password);
+    await user.click(screen.getByTestId('login-submit-btn'));
+    expect(await screen.findByRole('heading', { name: 'Keybox 管理' })).toBeInTheDocument();
+  });
   it('1. 预检上传完整流程：选择有效 XML -> 调用上传前校验展示逐链逐证书 -> 显示确认上传按钮 -> 成功后跳转详情页', async () => {
     const user = userEvent.setup();
     renderWithRouter(['/upload']);

@@ -7,3 +7,6 @@
 bin
 coverage.out
 *.key
+dist
+dist-preview
+node_modules

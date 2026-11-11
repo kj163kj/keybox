@@ -20,3 +20,21 @@ python scripts/generate_openapi.py --check
 没有该环境变量时会明确跳过集成测试。生产启动必须先配置密钥、HTTPS Origin、
 独立数据库角色，执行 `keybox migrate-up` 和一次性 `keybox init-admin`，再运行
 `keybox serve`。所有配置与运维命令见设计文档；`.env.example` 没有可用的默认凭据。
+
+## 本地前端预览
+
+```sh
+npm run setup:preview
+npm run build:preview
+npm run preview:local
+```
+
+预览地址为 `http://localhost:8080`。初始化命令生成随机密码并显示账密，
+保存于被 Git 与 Docker 忽略的 `.env.preview.local`。登录页可点击“填入预览账号”。
+这是本地 Mock 账号，不会创建后端管理员，也不访问生产数据；错误账密返回登录失败。
+
+预览必须显式使用 `--mode preview`，产物位于 `dist-preview/`，且只在回环地址启用。
+`npm run build` 固定执行生产构建，产物位于 `dist/`，只连接真实 API，
+不包含 Mock 实现、预览密码或演示模式切换按钮，并自动运行产物隔离检查。
+`VITE_API_MODE` 不再用于启用 Mock。生产管理员仍须通过后端一次性命令独立创建，
+不得使用本地预览账密。

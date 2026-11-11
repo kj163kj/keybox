@@ -6,6 +6,9 @@
     "module": "ESNext",
     "skipLibCheck": true,
     "moduleResolution": "bundler",
+    "paths": {
+      "@keybox-preview-api": ["./src/api/mock.ts"]
+    },
     "allowImportingTsExtensions": true,
     "isolatedModules": true,
     "moduleDetection": "force",

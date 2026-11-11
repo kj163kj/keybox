@@ -1,6 +1,7 @@
 import { GUEST_DOWNLOAD_CONFIRM_HEADER } from './contract';
 import { ApiClientError } from './errors';
-import { mockApi, nextRequestId } from './mock';
+import { mockApi, nextRequestId } from '@keybox-preview-api';
+import { isPreviewAvailable } from './preview-config';
 import {
   OPENAPI_OPERATIONS,
   type AdminKeyboxDetail,
@@ -66,14 +67,14 @@ function notifyUnauthorized() {
   }
 }
 
-let useMockMode = import.meta.env.VITE_API_MODE !== 'live';
+let useMockMode = isPreviewAvailable();
 
 export function isMockMode(): boolean {
-  return useMockMode;
+  return isPreviewAvailable() && useMockMode;
 }
 
 export function setApiMockMode(enabled: boolean) {
-  useMockMode = enabled;
+  useMockMode = isPreviewAvailable() && enabled;
 }
 
 function createMergedAbortController(
@@ -219,7 +220,7 @@ export const apiClient = {
     file: File,
     options?: RequestOptions,
   ): Promise<ApiResponseWithMeta<Validation>> {
-    if (useMockMode) {
+    if (__KEYBOX_PREVIEW__ && isMockMode()) {
       if (options?.signal?.aborted) {
         throw new ApiClientError({
           httpStatus: 408,
@@ -244,7 +245,7 @@ export const apiClient = {
     file: File,
     options?: RequestOptions,
   ): Promise<ApiResponseWithMeta<KeyboxCreated>> {
-    if (useMockMode) {
+    if (__KEYBOX_PREVIEW__ && isMockMode()) {
       if (options?.signal?.aborted) {
         throw new ApiClientError({
           httpStatus: 408,
@@ -270,7 +271,7 @@ export const apiClient = {
     page_size?: number;
     status?: Status;
   }): Promise<ApiResponseWithMeta<KeyboxSummaryPage>> {
-    if (useMockMode) {
+    if (__KEYBOX_PREVIEW__ && isMockMode()) {
       return mockApi.listKeyboxes(params);
     }
     const qs = buildQueryString(params);
@@ -280,7 +281,7 @@ export const apiClient = {
   },
 
   async getKeybox(id: string): Promise<ApiResponseWithMeta<KeyboxDetail>> {
-    if (useMockMode) {
+    if (__KEYBOX_PREVIEW__ && isMockMode()) {
       return mockApi.getKeybox(id);
     }
     const path = OPENAPI_OPERATIONS.getKeybox.path.replace('{id}', encodeURIComponent(id));
@@ -290,7 +291,7 @@ export const apiClient = {
   },
 
   async getKeyboxStatus(id: string): Promise<ApiResponseWithMeta<StatusResult>> {
-    if (useMockMode) {
+    if (__KEYBOX_PREVIEW__ && isMockMode()) {
       return mockApi.getKeyboxStatus(id);
     }
     const path = OPENAPI_OPERATIONS.getKeyboxStatus.path.replace('{id}', encodeURIComponent(id));
@@ -305,7 +306,7 @@ export const apiClient = {
    */
   async downloadGuestKeybox(id: string): Promise<{ requestId: string; filename: string }> {
     const path = OPENAPI_OPERATIONS.downloadKeybox.path.replace('{id}', encodeURIComponent(id));
-    if (useMockMode) {
+    if (__KEYBOX_PREVIEW__ && isMockMode()) {
       const res = await mockApi.checkGuestDownload(id);
       triggerBrowserAnchorDownload(`${path}?download=1`, res.filename);
       return res;
@@ -319,7 +320,7 @@ export const apiClient = {
     page?: number;
     page_size?: number;
   }): Promise<ApiResponseWithMeta<CertificatePage>> {
-    if (useMockMode) {
+    if (__KEYBOX_PREVIEW__ && isMockMode()) {
       return mockApi.getCertificateStatus(params);
     }
     const qs = buildQueryString(params);
@@ -329,7 +330,7 @@ export const apiClient = {
   },
 
   async adminLogin(input: LoginInput): Promise<ApiResponseWithMeta<LoginResult>> {
-    if (useMockMode) {
+    if (__KEYBOX_PREVIEW__ && isMockMode()) {
       const res = await mockApi.adminLogin(input);
       setCsrfToken(res.data.csrf_token);
       return res;
@@ -345,7 +346,7 @@ export const apiClient = {
 
   async adminLogout(): Promise<ApiResponseWithMeta<null>> {
     try {
-      if (useMockMode) {
+      if (__KEYBOX_PREVIEW__ && isMockMode()) {
         const res = await mockApi.adminLogout(inMemoryCsrfToken);
         setCsrfToken(null);
         return res;
@@ -366,7 +367,7 @@ export const apiClient = {
 
   async adminMe(): Promise<ApiResponseWithMeta<Me>> {
     try {
-      if (useMockMode) {
+      if (__KEYBOX_PREVIEW__ && isMockMode()) {
         const res = await mockApi.adminMe();
         setCsrfToken(res.data.csrf_token);
         return res;
@@ -391,7 +392,7 @@ export const apiClient = {
     guest_download_policy?: DownloadPolicy;
   }): Promise<ApiResponseWithMeta<AdminKeyboxSummaryPage>> {
     try {
-      if (useMockMode) {
+      if (__KEYBOX_PREVIEW__ && isMockMode()) {
         return await mockApi.adminListKeyboxes(params);
       }
       const qs = buildQueryString(params);
@@ -411,7 +412,7 @@ export const apiClient = {
 
   async adminGetKeybox(id: string): Promise<ApiResponseWithMeta<AdminKeyboxDetail>> {
     try {
-      if (useMockMode) {
+      if (__KEYBOX_PREVIEW__ && isMockMode()) {
         return await mockApi.adminGetKeybox(id);
       }
       const path = OPENAPI_OPERATIONS.adminGetKeybox.path.replace('{id}', encodeURIComponent(id));
@@ -431,7 +432,7 @@ export const apiClient = {
     patch: KeyboxPatch,
   ): Promise<ApiResponseWithMeta<AdminKeyboxDetail>> {
     try {
-      if (useMockMode) {
+      if (__KEYBOX_PREVIEW__ && isMockMode()) {
         return await mockApi.adminPatchKeybox(id, patch, inMemoryCsrfToken);
       }
       const path = OPENAPI_OPERATIONS.adminPatchKeybox.path.replace('{id}', encodeURIComponent(id));
@@ -453,7 +454,7 @@ export const apiClient = {
     id: string,
   ): Promise<ApiResponseWithMeta<{ id: string; deleted: true }>> {
     try {
-      if (useMockMode) {
+      if (__KEYBOX_PREVIEW__ && isMockMode()) {
         return await mockApi.adminDeleteKeybox(id, inMemoryCsrfToken);
       }
       const path = OPENAPI_OPERATIONS.adminDeleteKeybox.path.replace(
@@ -474,7 +475,7 @@ export const apiClient = {
 
   async adminRevalidateKeybox(id: string): Promise<ApiResponseWithMeta<Validation>> {
     try {
-      if (useMockMode) {
+      if (__KEYBOX_PREVIEW__ && isMockMode()) {
         return await mockApi.adminRevalidateKeybox(id, inMemoryCsrfToken);
       }
       const path = OPENAPI_OPERATIONS.adminRevalidateKeybox.path.replace(
@@ -498,7 +499,7 @@ export const apiClient = {
     params: { page?: number; page_size?: number },
   ): Promise<ApiResponseWithMeta<ValidationRunPage>> {
     try {
-      if (useMockMode) {
+      if (__KEYBOX_PREVIEW__ && isMockMode()) {
         return await mockApi.adminListValidationRuns(id, params);
       }
       const path = OPENAPI_OPERATIONS.adminListValidationRuns.path.replace(
@@ -523,7 +524,7 @@ export const apiClient = {
       encodeURIComponent(id),
     );
     try {
-      if (useMockMode) {
+      if (__KEYBOX_PREVIEW__ && isMockMode()) {
         const res = await mockApi.checkAdminDownload(id);
         triggerBrowserAnchorDownload(`${path}?download=1`, res.filename);
         return res;
@@ -539,7 +540,7 @@ export const apiClient = {
 
   async adminGetGuestDownloadSetting(): Promise<ApiResponseWithMeta<GuestDownloadSetting>> {
     try {
-      if (useMockMode) {
+      if (__KEYBOX_PREVIEW__ && isMockMode()) {
         return await mockApi.adminGetGuestDownloadSetting();
       }
       return await requestJson<GuestDownloadSetting>(
@@ -563,7 +564,7 @@ export const apiClient = {
     try {
       const confirmValue =
         enabled && confirmedSensitiveDownload ? GUEST_DOWNLOAD_CONFIRM_HEADER.value : undefined;
-      if (useMockMode) {
+      if (__KEYBOX_PREVIEW__ && isMockMode()) {
         return await mockApi.adminSetGuestDownloadSetting(
           { enabled },
           { csrfToken: inMemoryCsrfToken, confirmHeader: confirmValue },
@@ -596,7 +597,7 @@ export const apiClient = {
     action?: string;
   }): Promise<ApiResponseWithMeta<AuditLogPage>> {
     try {
-      if (useMockMode) {
+      if (__KEYBOX_PREVIEW__ && isMockMode()) {
         return await mockApi.adminListAuditLogs(params);
       }
       const qs = buildQueryString(params);
@@ -616,7 +617,7 @@ export const apiClient = {
     page_size?: number;
   }): Promise<ApiResponseWithMeta<DownloadLogPage>> {
     try {
-      if (useMockMode) {
+      if (__KEYBOX_PREVIEW__ && isMockMode()) {
         return await mockApi.adminListDownloadLogs(params);
       }
       const qs = buildQueryString(params);
@@ -636,7 +637,7 @@ export const apiClient = {
 
   async adminHealth(): Promise<ApiResponseWithMeta<Health>> {
     try {
-      if (useMockMode) {
+      if (__KEYBOX_PREVIEW__ && isMockMode()) {
         return await mockApi.adminHealth();
       }
       return await requestJson<Health>(OPENAPI_OPERATIONS.adminHealth.path, {
@@ -652,7 +653,7 @@ export const apiClient = {
 
   async adminRefreshCRL(): Promise<ApiResponseWithMeta<CRLRefresh>> {
     try {
-      if (useMockMode) {
+      if (__KEYBOX_PREVIEW__ && isMockMode()) {
         return await mockApi.adminRefreshCRL(inMemoryCsrfToken);
       }
       return await requestJson<CRLRefresh>(OPENAPI_OPERATIONS.adminRefreshCRL.path, {

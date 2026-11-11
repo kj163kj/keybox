@@ -8,7 +8,12 @@
     "check:types-sync": "node scripts/generate_api_types.mjs --check",
     "dev": "vite",
     "typecheck": "tsc --noEmit",
-    "build": "tsc --noEmit && vite build",
+    "build": "tsc --noEmit && vite build --mode production && node scripts/check-production.mjs",
+    "setup:preview": "node scripts/setup-preview.mjs",
+    "dev:preview": "vite --mode preview --host 127.0.0.1",
+    "build:preview": "tsc --noEmit && vite build --mode preview",
+    "preview:local": "vite preview --mode preview --host 127.0.0.1 --port 8080 --strictPort",
+    "check:production": "node scripts/check-production.mjs",
     "preview": "vite preview",
     "test": "vitest run"
   },
