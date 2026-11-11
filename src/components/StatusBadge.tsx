@@ -20,9 +20,9 @@ import {
 import type { DownloadPolicy, Status } from '../api/openapi.types';
 
 const TONE_CLASSES: Record<StatusTone, string> = {
-  emerald: 'bg-emerald-50 text-emerald-800 border-emerald-200',
-  amber: 'bg-amber-50 text-amber-800 border-amber-200',
-  rose: 'bg-rose-50 text-rose-800 border-rose-200',
+  emerald: 'bg-[#34c759]/14 text-[#1d7a34] border-[#34c759]/35 shadow-2xs',
+  amber: 'bg-[#ff9500]/15 text-[#9e5800] border-[#ff9500]/35 shadow-2xs',
+  rose: 'bg-[#ff3b30]/14 text-[#c41e14] border-[#ff3b30]/35 shadow-2xs',
 };
 
 export function StatusBadge({

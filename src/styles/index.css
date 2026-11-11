@@ -4,28 +4,201 @@
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
   --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-macos-spring: cubic-bezier(0.16, 1, 0.3, 1);
+  --macos-blue: #007aff;
+  --macos-blue-hover: #0062cc;
+  --macos-surface: rgba(255, 255, 255, 0.78);
+  --macos-surface-elevated: rgba(255, 255, 255, 0.88);
+  --macos-hairline: rgba(15, 23, 42, 0.09);
+  --macos-shadow-card:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.85),
+    0 0 0 0.5px rgba(15, 23, 42, 0.08),
+    0 2px 6px -1px rgba(15, 23, 42, 0.04),
+    0 10px 24px -6px rgba(15, 23, 42, 0.06);
+  --macos-shadow-window:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.9),
+    0 0 0 0.5px rgba(15, 23, 42, 0.12),
+    0 18px 48px -12px rgba(15, 23, 42, 0.12),
+    0 4px 14px -2px rgba(15, 23, 42, 0.06);
 }
 
 html {
   -webkit-tap-highlight-color: transparent;
   -webkit-text-size-adjust: 100%;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-optical-sizing: auto;
   overscroll-behavior: none;
   font-family:
-    "Inter",
     -apple-system,
     BlinkMacSystemFont,
-    "Segoe UI",
+    "SF Pro Text",
+    "SF Pro Display",
+    "Inter",
     "PingFang SC",
     "Hiragino Sans GB",
     "Microsoft YaHei",
     sans-serif;
 }
 
+code,
+pre,
+.font-mono {
+  font-family:
+    "SF Mono",
+    ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    Monaco,
+    Consolas,
+    monospace;
+}
+
 body {
   overscroll-behavior: none;
-  background-color: #f8fafc;
-  color: #0f172a;
+  background-color: #eef1f6;
+  background-image:
+    radial-gradient(at 12% 8%, rgba(0, 122, 255, 0.11) 0px, transparent 48%),
+    radial-gradient(at 88% 6%, rgba(88, 86, 214, 0.1) 0px, transparent 45%),
+    radial-gradient(at 50% 95%, rgba(52, 199, 89, 0.06) 0px, transparent 52%),
+    linear-gradient(180deg, #f5f7fb 0%, #eaeef5 100%);
+  background-attachment: fixed;
+  color: #1d1d1f;
   min-height: 100dvh;
+  line-height: 1.47;
+}
+
+/* Apple Typography: size-specific tracking & leading */
+h1 {
+  letter-spacing: -0.022em;
+  line-height: 1.2;
+}
+
+h2,
+h3 {
+  letter-spacing: -0.015em;
+  line-height: 1.28;
+}
+
+/* macOS Window & Translucent Materials */
+.macos-toolbar {
+  background: rgba(248, 249, 252, 0.74);
+  backdrop-filter: blur(24px) saturate(190%);
+  -webkit-backdrop-filter: blur(24px) saturate(190%);
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.85),
+    0 1px 0 0 rgba(15, 23, 42, 0.08),
+    0 4px 16px -4px rgba(15, 23, 42, 0.05);
+}
+
+.macos-window-shell {
+  background: rgba(255, 255, 255, 0.62);
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  border-radius: 16px;
+  box-shadow: var(--macos-shadow-window);
+}
+
+.macos-segmented {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 9px;
+  background: rgba(118, 118, 128, 0.12);
+  box-shadow: inset 0 1px 1.5px rgba(0, 0, 0, 0.06);
+}
+
+.macos-segmented-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(29, 29, 31, 0.74);
+  transition:
+    transform 120ms var(--ease-out),
+    background-color 140ms var(--ease-out),
+    color 140ms var(--ease-out),
+    box-shadow 140ms var(--ease-out);
+}
+
+.macos-segmented-item:hover {
+  color: #1d1d1f;
+}
+
+.macos-segmented-item-active {
+  background: #ffffff;
+  color: #1d1d1f;
+  font-weight: 600;
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.1),
+    0 1px 1px rgba(0, 0, 0, 0.06),
+    0 0 0 0.5px rgba(0, 0, 0, 0.05);
+}
+
+/* macOS Traffic Lights */
+.macos-traffic-lights {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.macos-traffic-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 9999px;
+  box-shadow: inset 0 0 0 0.75px rgba(0, 0, 0, 0.15);
+}
+
+/* Harmonize cards, buttons, and inputs across pages to macOS Sonoma/Sequoia craft */
+main section.bg-white,
+main div.rounded-2xl.bg-white {
+  background: var(--macos-surface);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-color: rgba(255, 255, 255, 0.65);
+  box-shadow: var(--macos-shadow-card);
+}
+
+main button.bg-slate-900,
+main a.bg-slate-900 {
+  background: linear-gradient(180deg, #1e8fff 0%, #007aff 100%) !important;
+  border-color: rgba(0, 98, 204, 0.45) !important;
+  color: #ffffff !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    0 1px 2px rgba(0, 122, 255, 0.24);
+}
+
+main button.bg-slate-900:hover:not(:disabled),
+main a.bg-slate-900:hover {
+  background: linear-gradient(180deg, #0f82f5 0%, #0068d9 100%) !important;
+}
+
+main input:not([type="checkbox"]):not([type="file"]),
+main select,
+main textarea {
+  background: rgba(255, 255, 255, 0.9);
+  border-color: rgba(15, 23, 42, 0.15);
+  box-shadow:
+    inset 0 1px 1.5px rgba(15, 23, 42, 0.04),
+    0 1px 0 rgba(255, 255, 255, 0.8);
+  transition:
+    border-color 140ms var(--ease-out),
+    box-shadow 140ms var(--ease-out),
+    background-color 140ms var(--ease-out);
+}
+
+main input:not([type="checkbox"]):not([type="file"]):focus,
+main select:focus,
+main textarea:focus {
+  background: #ffffff;
+  border-color: var(--macos-blue) !important;
+  box-shadow: 0 0 0 3.5px rgba(0, 122, 255, 0.24) !important;
+  outline: none;
 }
 
 @media (pointer: coarse) {
@@ -53,7 +226,7 @@ button,
 
 .btn-interactive {
   transition:
-    transform 140ms var(--ease-out),
+    transform 100ms var(--ease-out),
     background-color 140ms ease,
     border-color 140ms ease,
     color 140ms ease,
@@ -90,11 +263,11 @@ button,
   transform: scale(1) translateY(0);
   transform-origin: center;
   transition:
-    transform 200ms var(--ease-out),
+    transform 240ms var(--ease-macos-spring),
     opacity 200ms var(--ease-out);
   @starting-style {
     opacity: 0;
-    transform: scale(0.95) translateY(4px);
+    transform: scale(0.95) translateY(6px);
   }
 }
 
@@ -120,6 +293,7 @@ button,
 
 @media (prefers-reduced-motion: reduce) {
   .btn-interactive,
+  .macos-segmented-item,
   .hover-card-lift,
   .modal-backdrop-enter,
   .modal-panel-enter,
@@ -130,5 +304,16 @@ button,
       border-color 200ms ease !important;
     transform: none !important;
     animation: none !important;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .macos-toolbar,
+  .macos-window-shell,
+  main section.bg-white,
+  main div.rounded-2xl.bg-white {
+    background: #ffffff !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
   }
 }

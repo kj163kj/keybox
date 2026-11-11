@@ -29,13 +29,19 @@ export function RiskConfirmModal({
 
   return (
     <div
-      className="modal-backdrop-enter fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-[2px]"
+      className="modal-backdrop-enter fixed inset-0 z-50 flex items-center justify-center bg-black/35 p-4 backdrop-blur-[6px]"
       role="dialog"
       aria-modal="true"
       aria-labelledby="risk-modal-title"
       data-testid="risk-confirm-modal"
     >
-      <div className="modal-panel-enter scroll-contain w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-xl">
+      <div
+        className="modal-panel-enter scroll-contain w-full max-w-lg rounded-[18px] border border-white/80 bg-white/90 p-6 shadow-2xl backdrop-blur-2xl"
+        style={{
+          boxShadow:
+            'inset 0 1px 0 rgba(255,255,255,0.9), 0 0 0 0.5px rgba(0,0,0,0.14), 0 24px 60px -12px rgba(0,0,0,0.28)',
+        }}
+      >
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3">
             <div
