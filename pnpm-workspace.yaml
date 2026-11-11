@@ -1,4 +1,3 @@
+# Only this locked native build dependency may run an install script.
 allowBuilds:
-  esbuild: set this to true or false
-onlyBuiltDependencies:
-  - esbuild
+  esbuild@0.25.12: true
